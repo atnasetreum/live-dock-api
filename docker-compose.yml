@@ -2,23 +2,17 @@ version: '3.8'
 
 services:
   db:
+    env_file:
+      - .env.development
     image: postgres:18
     restart: always
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydatabase
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
-      # Mount the host volume to /var/lib/postgresql, the base directory for data
       - pgdata:/var/lib/postgresql
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U myuser -d mydatabase']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-# Define the named volume
 volumes:
   pgdata:

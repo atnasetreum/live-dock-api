@@ -4,6 +4,10 @@
 /build
 /pgdata
 
+# enviroments
+.env.development
+.env.production
+
 # Logs
 logs
 *.log

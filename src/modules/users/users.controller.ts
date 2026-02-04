@@ -20,6 +20,11 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
+  @Post('seed')
+  seed() {
+    return this.usersService.seed();
+  }
+
   @Get()
   findAll() {
     return this.usersService.findAll();

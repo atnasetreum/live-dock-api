@@ -1,23 +1,63 @@
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Module } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 
-import { UsersModule } from './users/users.module';
+import { EnvConfiguration, JoiValidationSchema } from './config';
+import { AppKeyMiddleware, JwtMiddleware } from './middlewares';
+import { AuthModule, JwtService } from './auth';
+import { UsersModule } from './modules';
+
+const ENV = process.env.NODE_ENV;
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'myuser',
-      password: 'mypassword',
-      database: 'mydatabase',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: !ENV ? '.env.development' : `.env.${ENV}`,
+      load: [EnvConfiguration],
+      validationSchema: JoiValidationSchema,
     }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get<string>('DB_HOST'),
+        port: config.get<number>('DB_PORT'),
+        username: config.get<string>('DB_USERNAME'),
+        password: config.get<string>('DB_PASSWORD'),
+        database: config.get<string>('DB_NAME'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: true,
+      }),
+    }),
+    AuthModule,
     UsersModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [JwtService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  public configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(AppKeyMiddleware).forRoutes('*');
+    consumer
+      .apply(JwtMiddleware)
+      .exclude(
+        { path: 'users/seed', method: RequestMethod.POST },
+        { path: 'auth/check-token', method: RequestMethod.POST },
+        {
+          path: 'auth/check-token-restore-password',
+          method: RequestMethod.POST,
+        },
+        { path: 'auth/login', method: RequestMethod.POST },
+        { path: 'auth/login-restore-password', method: RequestMethod.POST },
+        { path: 'auth/forgot-password', method: RequestMethod.POST },
+      )
+      .forRoutes('*');
+  }
+}

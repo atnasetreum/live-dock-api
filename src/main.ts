@@ -1,6 +1,8 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
+import cookieParser from 'cookie-parser';
+
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -8,7 +10,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule, {
     cors: {
-      origin: `${process.env.WHITE_LIST_DOMAINS}`.split(','),
+      origin: process.env.WHITE_LIST_DOMAINS!.split(','),
       credentials: true,
     },
   });
@@ -23,11 +25,9 @@ async function bootstrap() {
     }),
   );
 
-  //app.use(cookieParser());
+  app.use(cookieParser());
 
-  app.setGlobalPrefix('/api/v1');
-
-  const PORT = process.env.PORT || 3030;
+  const PORT = process.env.PORT!;
 
   await app.listen(PORT);
 
