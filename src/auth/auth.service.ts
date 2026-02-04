@@ -64,8 +64,9 @@ export class AuthService {
       },
     });
 
-    if (!user)
+    if (!user) {
       throw new NotFoundException(`User with email ${email} not found`);
+    }
 
     if (!(await argon2.verify(user.password, password))) {
       throw new UnauthorizedException('Invalid credentials');

@@ -18,13 +18,9 @@ export class JwtService {
   }
 
   get expiresIn(): number {
-    const expireTime = 60 * 60 * 24 * 30; // 30 days in seconds
-
-    const expiresIn = () => {
-      return Math.floor(Date.now() / 1000) + expireTime;
-    };
-
-    return expiresIn();
+    const expireTime = 30 * 24 * 60 * 60; // 30 days in seconds
+    //const expireTime = 10; // 10 segundos
+    return expireTime;
   }
 
   create(userId: number): string {

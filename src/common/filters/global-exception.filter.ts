@@ -73,7 +73,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     };
   }
 
-  private handleQueryFailedError(error: QueryFailedError) {
+  private handleQueryFailedError(error: QueryFailedError<any>) {
     const driverError = error.driverError as { code?: string; detail?: string };
 
     switch (driverError?.code) {

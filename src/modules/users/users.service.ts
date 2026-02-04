@@ -1,5 +1,9 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { Repository } from 'typeorm';
 import * as argon2 from 'argon2';
@@ -14,8 +18,17 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  create(createUserDto: CreateUserDto) {
-    return this.userRepository.save(this.userRepository.create(createUserDto));
+  async create(createUserDto: CreateUserDto) {
+    const existingUser = await this.userRepository.findOne({
+      where: { email: createUserDto.email, isActive: true },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    const user = this.userRepository.create(createUserDto);
+    return this.userRepository.save(user);
   }
 
   findAll() {
@@ -24,33 +37,50 @@ export class UsersService {
     });
   }
 
-  findOne(id: number) {
-    return this.userRepository.findOne({
+  async findOne(id: number) {
+    const user = await this.userRepository.findOne({
       where: { id, isActive: true },
     });
+
+    if (!user) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+
+    return user;
   }
 
-  findOneByEmail(email: string) {
-    return this.userRepository.findOne({
-      where: { email, isActive: true },
-    });
-  }
+  async update(id: number, updateUserDto: UpdateUserDto) {
+    const user = await this.findOne(id);
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return this.userRepository.update(id, updateUserDto);
+    const { password, ...rest } = updateUserDto;
+
+    if (password) {
+      user.password = await argon2.hash(password);
+    }
+
+    const userUpdated = this.userRepository.merge(user, rest);
+
+    await this.userRepository.update(id, userUpdated);
+
+    // @ts-expect-error Removing password from the returned user object
+    delete userUpdated.password;
+
+    return userUpdated;
   }
 
   remove(id: number) {
-    return this.userRepository.update(id, { isActive: false });
+    return this.update(id, { isActive: false } as UpdateUserDto);
   }
 
   async seed() {
     const email = 'eduardo-266@hotmail.com';
 
-    const userExists = await this.findOneByEmail(email);
+    const userExists = await this.userRepository.findOne({
+      where: { email },
+    });
 
     if (userExists) {
-      return { message: 'User already exists' };
+      throw new ConflictException('User with this email (seed) already exists');
     }
 
     const user = {
