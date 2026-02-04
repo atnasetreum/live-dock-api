@@ -3,7 +3,11 @@ import { NestFactory } from '@nestjs/core';
 
 import cookieParser from 'cookie-parser';
 
+import { GlobalExceptionFilter } from './common';
 import { AppModule } from './app.module';
+
+const PORT = process.env.PORT!;
+const NODE_ENV = process.env.NODE_ENV!;
 
 async function bootstrap() {
   const logger = new Logger('APP-SERVICE');
@@ -27,13 +31,11 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  const PORT = process.env.PORT!;
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   await app.listen(PORT);
 
-  logger.debug(
-    `Running on port: [${PORT}], environment: [${process.env.NODE_ENV}]`,
-  );
+  logger.debug(`Running on port: [${PORT}], environment: [${NODE_ENV}]`);
 }
 bootstrap().catch((err) => {
   console.error('Error during application bootstrap:', err);
