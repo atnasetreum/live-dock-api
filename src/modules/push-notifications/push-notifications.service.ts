@@ -55,7 +55,7 @@ export class PushNotificationsService {
 
   async testPushNotification() {
     const options = {
-      title: 'FINANCES powered by Delfos',
+      title: 'FINANCES powered by Delfos2',
       body: 'Hola equipo de finanzas, tienes un nuevo soporte',
       icon: '/img/logos/delfos-isologotipo-dataservice-vertical.svg',
       badge: '/img/logos/delfos-isologotipo-dataservice-vertical.svg',
