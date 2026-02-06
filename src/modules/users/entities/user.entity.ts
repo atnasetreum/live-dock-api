@@ -6,7 +6,10 @@ import {
   BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+
+import { Subscription } from 'src/modules/push-notifications';
 
 @Entity('users')
 export class User {
@@ -34,6 +37,9 @@ export class User {
     name: 'updated_at',
   })
   updatedAt: Date;
+
+  @OneToMany(() => Subscription, (subscription) => subscription.user)
+  subscriptions: Subscription[];
 
   @BeforeInsert()
   async hashPassword() {

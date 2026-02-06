@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 
 import { Request, Response, NextFunction } from 'express';
+import { JwtService } from 'src/auth';
 
 import { User, UsersService } from 'src/modules/users';
-import { JwtService } from 'src/auth';
 
 export interface UserSession extends User {
   token: string;
