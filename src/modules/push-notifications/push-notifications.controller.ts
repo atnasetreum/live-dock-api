@@ -4,6 +4,7 @@ import {
   Post,
   Req,
   BadRequestException,
+  Body,
 } from '@nestjs/common';
 
 import { type Request } from 'express';
@@ -35,7 +36,7 @@ export class PushNotificationsController {
   }
 
   @Post('/test-push')
-  testPushNotification() {
-    return this.pushNotificationsService.testPushNotification();
+  testPushNotification(@Body() body: Record<string, unknown>) {
+    return this.pushNotificationsService.testPushNotification(body);
   }
 }

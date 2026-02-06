@@ -53,7 +53,7 @@ export class PushNotificationsService {
     return (URLSafeBase64 as any).decode(vapidKeys.publicKey) as Buffer;
   }
 
-  async testPushNotification() {
+  async testPushNotification(body: Record<string, unknown>) {
     const options = {
       title: 'FINANCES powered by Delfos2',
       body: 'Hola equipo de finanzas, tienes un nuevo soporte',
@@ -63,21 +63,34 @@ export class PushNotificationsService {
       data: {
         //url: '/supports?id=5196',
         url: '/supports',
+        typeNotification: 'warning',
       },
     };
 
-    console.log({ currentUser: this.currentUser });
+    console.log({ options });
 
     const subscription = await this.subscriptionRepository.findOne({
       //where: { user: { id: this.currentUser.id }, isActive: true },
       where: { isActive: true },
     });
 
+    const eventTime = new Date().toISOString();
+    const sleep = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+
+    await sleep(1000);
+
     if (subscription) {
       await webpush
         .sendNotification(
           JSON.parse(subscription.subscription),
-          JSON.stringify(options),
+          JSON.stringify({
+            title: body?.title ?? '',
+            body: body?.body ?? '',
+            typeNotification: body?.typeNotification ?? '',
+            tagId: body?.tagId ?? '',
+            eventTime,
+          }),
         )
         .then(() => {
           this.logger.debug('Notification sent');
