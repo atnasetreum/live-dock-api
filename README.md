@@ -25,6 +25,46 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Realtime Sessions Gateway
+
+The API now exposes a Socket.IO namespace called `sessions` that lets every authenticated user keep multiple concurrent connections (tabs, browsers, devices) in sync.
+
+### Connecting from the client
+
+Use `socket.io-client` and send the same JWT you already receive during login. You can send it either through the `Authorization` header, `auth` payload, or `token` query parameter.
+
+```ts
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000/sessions', {
+  auth: {
+    token: userToken,
+    context: 'dashboard-tab-1',
+  },
+});
+
+socket.on('sessions:ready', ({ socketId, sessions }) => {
+  console.log('Current connection', socketId);
+  console.log('All active sessions', sessions);
+});
+
+socket.on('sessions:update', (sessions) => {
+  console.log('Sessions changed', sessions);
+});
+
+socket.on('sessions:error', (payload) => {
+  console.error('Unable to keep the session alive', payload);
+});
+```
+
+### Event contract
+
+- `sessions:ready`: sent once after a successful handshake so the client knows its socket id plus the complete snapshot of their active sessions.
+- `sessions:update`: broadcast to all of the user sessions whenever a new connection joins or an existing one leaves.
+- `sessions:error`: emitted before disconnecting the socket when the token is missing or invalid.
+
+The payload of `sessions:ready` and `sessions:update` is an array of `{ socketId, connectedAt, metadata }`. Metadata includes the remote IP, the `User-Agent`, and the optional `context` sent during the handshake so you can label each device or browser tab.
+
 ## Project setup
 
 ```bash

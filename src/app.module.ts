@@ -10,7 +10,7 @@ import {
 import { EnvConfiguration, JoiValidationSchema } from './config';
 import { AppKeyMiddleware, JwtMiddleware } from './middlewares';
 import { AuthModule, JwtService } from './auth';
-import { UsersModule } from './modules';
+import { SessionsModule, UsersModule } from './modules';
 import { RequestLoggerMiddleware } from './middlewares/request-logger.middleware';
 
 const ENV = process.env.NODE_ENV;
@@ -39,6 +39,7 @@ const ENV = process.env.NODE_ENV;
     }),
     AuthModule,
     UsersModule,
+    SessionsModule,
   ],
   controllers: [],
   providers: [JwtService],

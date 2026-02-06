@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import * as argon2 from 'argon2';
 
 import { CreateUserDto, UpdateUserDto } from './dto';
@@ -34,6 +34,12 @@ export class UsersService {
   findAll() {
     return this.userRepository.find({
       where: { isActive: true },
+    });
+  }
+
+  findAllByIds(ids: number[]) {
+    return this.userRepository.find({
+      where: { id: In(ids), isActive: true },
     });
   }
 

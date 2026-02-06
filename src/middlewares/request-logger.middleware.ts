@@ -9,18 +9,20 @@ export class RequestLoggerMiddleware implements NestMiddleware {
       ? req.headers['x-request-id'][0]
       : (req.headers['x-request-id'] as string) || 'NO-ID';
 
-    console.info(`[Backend] Request ${requestId}`, {
+    console.log({ requestId });
+
+    /* console.info(`[Backend] Request ${requestId}`, {
       method: req.method,
       url: req.originalUrl,
       body: (req.body as unknown) ?? null,
       timestamp: new Date().toISOString(),
-    });
+    }); */
 
     res.on('finish', () => {
-      console.info(`[Backend] Response ${requestId}`, {
+      /* console.info(`[Backend] Response ${requestId}`, {
         statusCode: res.statusCode,
         timestamp: new Date().toISOString(),
-      });
+      }); */
     });
 
     next();
