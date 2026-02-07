@@ -10,6 +10,11 @@ import {
 } from 'typeorm';
 
 import { Subscription } from 'src/modules/push-notifications';
+import {
+  NotificationMetric,
+  ProcessEvent,
+  ReceptionProcess,
+} from 'src/modules/reception-process';
 
 @Entity('users')
 export class User {
@@ -40,6 +45,21 @@ export class User {
 
   @OneToMany(() => Subscription, (subscription) => subscription.user)
   subscriptions: Subscription[];
+
+  @OneToMany(() => ProcessEvent, (processEvent) => processEvent.createdBy)
+  createdByProcessEvents: ProcessEvent[];
+
+  @OneToMany(
+    () => NotificationMetric,
+    (notificationMetric) => notificationMetric.createdBy,
+  )
+  createdByNotificationMetrics: NotificationMetric[];
+
+  @OneToMany(
+    () => ReceptionProcess,
+    (receptionProcess) => receptionProcess.createdBy,
+  )
+  createdByReceptionProcesses: ReceptionProcess[];
 
   @BeforeInsert()
   async hashPassword() {

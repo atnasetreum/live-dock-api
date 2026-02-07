@@ -13,6 +13,7 @@ import { AuthModule, JwtService } from './auth';
 import { SessionsModule, UsersModule } from './modules';
 import { RequestLoggerMiddleware } from './middlewares/request-logger.middleware';
 import { PushNotificationsModule } from './modules/push-notifications/push-notifications.module';
+import { ReceptionProcessModule } from './modules/reception-process/reception-process.module';
 
 const ENV = process.env.NODE_ENV;
 
@@ -42,6 +43,7 @@ const ENV = process.env.NODE_ENV;
     UsersModule,
     SessionsModule,
     PushNotificationsModule,
+    ReceptionProcessModule,
   ],
   controllers: [],
   providers: [JwtService],

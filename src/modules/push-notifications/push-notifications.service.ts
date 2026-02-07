@@ -40,6 +40,8 @@ export class PushNotificationsService {
     const subscriptionNew = this.subscriptionRepository.create({
       subscription,
       user,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     const subscriptionCreate =
@@ -54,25 +56,14 @@ export class PushNotificationsService {
   }
 
   async testPushNotification(body: Record<string, unknown>) {
-    const options = {
-      title: 'FINANCES powered by Delfos2',
-      body: 'Hola equipo de finanzas, tienes un nuevo soporte',
-      icon: '/img/logos/delfos-isologotipo-dataservice-vertical.svg',
-      badge: '/img/logos/delfos-isologotipo-dataservice-vertical.svg',
-      openUrl: '/',
-      data: {
-        //url: '/supports?id=5196',
-        url: '/supports',
-        typeNotification: 'warning',
-      },
-    };
-
-    console.log({ options });
-
     const subscription = await this.subscriptionRepository.findOne({
-      //where: { user: { id: this.currentUser.id }, isActive: true },
       where: { isActive: true },
     });
+
+    if (!subscription) {
+      this.logger.warn('No active subscription found');
+      return { message: 'No active subscription found' };
+    }
 
     const eventTime = new Date().toISOString();
     const sleep = (ms: number) =>
@@ -80,71 +71,37 @@ export class PushNotificationsService {
 
     await sleep(1000);
 
-    if (subscription) {
-      await webpush
-        .sendNotification(
-          JSON.parse(subscription.subscription),
-          JSON.stringify({
-            title: body?.title ?? '',
-            body: body?.body ?? '',
-            typeNotification: body?.typeNotification ?? '',
-            tagId: body?.tagId ?? '',
-            eventTime,
-          }),
-        )
-        .then(() => {
-          this.logger.debug('Notification sent');
-        })
-        .catch((err) => {
-          const statusCode = err.statusCode || err.status;
-
-          if (statusCode === 410) {
-            this.subscriptionRepository.remove(subscription);
-          }
-        });
-    }
-
-    return 'test push endpoint';
-  }
-
-  /* async sendPush() {
-    const subscriptions = await this.subscriptionRepository.find({
-      where: { isActive: true },
+    await this.sendNotification(subscription, {
+      title: body?.title ?? '',
+      body: body?.body ?? '',
+      typeNotification: body?.typeNotification ?? '',
+      tagId: body?.tagId ?? '',
+      eventTime,
     });
 
-    if (subscriptions.length) {
-      subscriptions.forEach((data) => {
-        const options = {
-          title: 'FINANCES powered by Delfos',
-          body: 'Hola equipo de finanzas, tienes un nuevo soporte',
-          icon: '/img/logos/delfos-isologotipo-dataservice-vertical.svg',
-          badge: '/img/logos/delfos-isologotipo-dataservice-vertical.svg',
-          openUrl: '/',
-          data: {
-            //url: '/supports?id=5196',
-            url: '/supports',
-          },
-        };
-
-        this.sendNotification(data, options);
-      });
-    }
-
-    return 'push endpoint';
+    return { message: 'test push endpoint' };
   }
 
-  async sendNotification(dataDb: Subscription, options: Record<string, any>) {
-    const subscription = JSON.parse(dataDb.subscription);
-
+  private async sendNotification(
+    subscription: Subscription,
+    options: Record<string, any>,
+  ) {
     await webpush
-      .sendNotification(subscription, JSON.stringify(options))
+      .sendNotification(
+        JSON.parse(subscription.subscription) as webpush.PushSubscription,
+        JSON.stringify(options),
+      )
       .then(() => {
         this.logger.debug('Notification sent');
       })
-      .catch((err) => {
-        if (err.statusCode === 410) {
-          this.subscriptionRepository.remove(dataDb);
+      .catch(async (err: unknown) => {
+        const statusCode =
+          (err as Record<string, unknown>)?.statusCode ||
+          (err as Record<string, unknown>)?.status;
+
+        if (statusCode === 410) {
+          await this.subscriptionRepository.remove(subscription);
         }
       });
-  } */
+  }
 }
