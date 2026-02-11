@@ -4,6 +4,7 @@ interface EnvValidationSchema {
   NODE_ENV: string;
   PORT: number;
   APP_KEY: string;
+  PUBLIC_BACKEND_URL: string;
   WHITE_LIST_DOMAINS: string;
   JWT_SECRET_KEY: string;
   DB_HOST: string;
@@ -18,6 +19,7 @@ export const JoiValidationSchema: ObjectSchema<EnvValidationSchema> =
     NODE_ENV: Joi.string().required(),
     PORT: Joi.number().required(),
     APP_KEY: Joi.string().required(),
+    PUBLIC_BACKEND_URL: Joi.string().required(),
     WHITE_LIST_DOMAINS: Joi.string().required(),
     JWT_SECRET_KEY: Joi.string().required(),
     DB_HOST: Joi.string().required(),

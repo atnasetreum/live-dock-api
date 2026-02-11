@@ -9,12 +9,21 @@ import {
   OneToMany,
 } from 'typeorm';
 
-import { Subscription } from 'src/modules/push-notifications';
+import { Subscription } from 'src/modules/push-notifications/entities/subscription.entity';
 import {
-  NotificationMetric,
   ProcessEvent,
+  NotificationMetric,
   ReceptionProcess,
-} from 'src/modules/reception-process';
+} from 'src/modules/reception-process/entities';
+
+export enum UserRole {
+  VIGILANCIA = 'VIGILANCIA',
+  LOGISTICA = 'LOGISTICA',
+  CALIDAD = 'CALIDAD',
+  PRODUCCION = 'PRODUCCION',
+  ADMIN = 'ADMIN',
+  GENERAL = 'GENERAL',
+}
 
 @Entity('users')
 export class User {
@@ -29,6 +38,12 @@ export class User {
 
   @Column({ select: false })
   password: string;
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+  })
+  role: UserRole;
 
   @Column({ default: true, name: 'is_active' })
   isActive: boolean;

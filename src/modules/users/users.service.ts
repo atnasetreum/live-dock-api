@@ -8,8 +8,8 @@ import {
 import { In, Repository } from 'typeorm';
 import * as argon2 from 'argon2';
 
+import { User, UserRole } from './entities/user.entity';
 import { CreateUserDto, UpdateUserDto } from './dto';
-import { User } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
@@ -82,8 +82,14 @@ export class UsersService {
     return this.update(id, { isActive: false } as UpdateUserDto);
   }
 
+  async findAllByRole(role: UserRole) {
+    return this.userRepository.find({
+      where: { role, isActive: true },
+    });
+  }
+
   async seed() {
-    const email = 'eduardo-266@hotmail.com';
+    /* const email = 'eduardo-266@hotmail.com';
 
     const userExists = await this.userRepository.findOne({
       where: { email },
@@ -97,10 +103,43 @@ export class UsersService {
       name: 'Eduardo Domínguez',
       password: await argon2.hash('123'),
       email,
+      role: UserRole.ADMIN,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     await this.userRepository.upsert(user, ['email']);
 
-    return { message: 'Seed completed' };
+    return { message: 'Seed completed' }; */
+
+    for (const role of [
+      UserRole.VIGILANCIA,
+      UserRole.LOGISTICA,
+      UserRole.CALIDAD,
+      UserRole.PRODUCCION,
+      UserRole.ADMIN,
+      UserRole.GENERAL,
+    ]) {
+      const email = `user-${role.toLocaleLowerCase()}@example.com`;
+
+      const userExists = await this.userRepository.findOne({
+        where: { email },
+      });
+
+      if (userExists) {
+        continue;
+      }
+
+      const user = {
+        name: `User ${role}`,
+        password: await argon2.hash('123'),
+        email,
+        role,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      await this.userRepository.upsert(user, ['email']);
+    }
   }
 }

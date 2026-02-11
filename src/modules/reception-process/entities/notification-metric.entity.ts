@@ -8,13 +8,12 @@ import {
 } from 'typeorm';
 
 import { ReceptionProcess } from './reception-process.entity';
-import { User } from 'src/modules/users';
+import { User } from 'src/modules/users/entities/user.entity';
 
 export enum NotificationEventType {
-  PUSH_RECEIVED = 'PUSH_RECEIVED',
   NOTIFICATION_SHOWN = 'NOTIFICATION_SHOWN',
-  NOTIFICATION_CLICKED = 'NOTIFICATION_CLICKED',
-  ACTION_CLICKED = 'ACTION_CLICKED',
+  ACTION_CLICKED_CONFIRM = 'ACTION_CLICKED_CONFIRM',
+  NOTIFICATION_CLICKED_NOT_ACTION = 'NOTIFICATION_CLICKED_NOT_ACTION',
   NOTIFICATION_CLOSED = 'NOTIFICATION_CLOSED',
   EXPIRED = 'EXPIRED',
 }

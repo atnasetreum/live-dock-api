@@ -11,7 +11,7 @@ import {
 import { Socket } from 'socket.io';
 
 import { SessionMetadata, SessionsService } from './sessions.service';
-import { UsersService } from '../users';
+import { UsersService } from '../users/users.service';
 import { JwtService } from 'src/auth';
 
 @WebSocketGateway({

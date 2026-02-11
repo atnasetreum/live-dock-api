@@ -3,13 +3,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { REQUEST } from '@nestjs/core';
 
 import * as URLSafeBase64 from 'urlsafe-base64';
+import { In, Repository } from 'typeorm';
 import { type Request } from 'express';
-import { Repository } from 'typeorm';
 import * as webpush from 'web-push';
 
+import { User, UserRole } from '../users/entities/user.entity';
 import { Subscription } from './entities/subscription.entity';
 import * as vapidKeys from 'src/config/vapid-keys.json';
-import { User } from '../users';
+import { UsersService } from '../users/users.service';
+import {
+  ReceptionProcess,
+  ReceptionProcessTypeOfMaterial,
+} from '../reception-process/entities/reception-process.entity';
+import { ConfigService } from '@nestjs/config';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
 webpush.setVapidDetails(
@@ -21,13 +27,17 @@ webpush.setVapidDetails(
 @Injectable()
 export class PushNotificationsService {
   private readonly logger = new Logger(PushNotificationsService.name);
+  private publicBackendUrl: string;
 
   constructor(
     @Inject(REQUEST) private readonly request: Request,
     @InjectRepository(Subscription)
     private readonly subscriptionRepository: Repository<Subscription>,
+    private readonly usersService: UsersService,
+    private readonly configService: ConfigService,
   ) {
-    this.logger.debug('PushNotificationsService initialized');
+    this.publicBackendUrl =
+      this.configService.get<string>('publicBackendUrl') ?? '';
   }
 
   get currentUser() {
@@ -80,6 +90,69 @@ export class PushNotificationsService {
     });
 
     return { message: 'test push endpoint' };
+  }
+
+  async createReceptionProcessNotification(
+    receptionProcess: {
+      typeOfMaterial: ReceptionProcessTypeOfMaterial;
+      createdBy: User;
+    } & ReceptionProcess,
+    expiredUser?: User,
+  ) {
+    const { id, typeOfMaterial, createdBy } = receptionProcess;
+
+    let usersIds: number[] = [];
+
+    if (!expiredUser) {
+      const logisticsUsers = await this.usersService.findAllByRole(
+        UserRole.LOGISTICA,
+      );
+
+      console.log({ size: logisticsUsers.length });
+
+      // usersIds = [createdBy.id, ...logisticsUsers.map((user) => user.id)];
+      // usersIds = [...logisticsUsers.map((user) => user.id)]; // Correcto
+      usersIds = [createdBy.id]; // TODO: Eliminar esto
+    } else {
+      usersIds = [expiredUser.id];
+    }
+
+    const subscriptions = await this.subscriptionRepository.find({
+      where: {
+        user: {
+          id: In(usersIds),
+        },
+        isActive: true,
+      },
+      relations: ['user'],
+    });
+
+    const eventTime = new Date().toISOString();
+
+    await Promise.all(
+      subscriptions.map((subscription) =>
+        this.sendNotification(subscription, {
+          title: 'Llegada de pipa 🚛➡️🏭',
+          body: `# Identificador: ${id} \nTipo de material: ${typeOfMaterial} \nCreado por: ${createdBy.name}`,
+          typeNotification: 'waiting',
+          tagId: `reception-process-${id}`,
+          eventTime,
+          requireInteraction: true,
+          vibrate: [200],
+          actions: [
+            {
+              action: 'confirm-logistic',
+              title: 'Confirmar',
+            },
+          ],
+          data: {
+            id,
+            notifiedUserId: subscription.user.id,
+            publicBackendUrl: this.publicBackendUrl,
+          },
+        }),
+      ),
+    );
   }
 
   private async sendNotification(

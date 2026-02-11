@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { SessionsGateway } from './sessions.gateway';
 import { SessionsService } from './sessions.service';
-import { UsersModule } from '../users';
+import { UsersModule } from '../users/users.module';
 import { AuthModule } from 'src/auth';
 
 @Module({

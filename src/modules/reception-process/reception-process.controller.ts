@@ -8,7 +8,11 @@ import {
   Delete,
 } from '@nestjs/common';
 
-import { CreateReceptionProcessDto, UpdateReceptionProcessDto } from './dto';
+import {
+  CreateNotificationMetricDto,
+  CreateReceptionProcessDto,
+  UpdateReceptionProcessDto,
+} from './dto';
 import { ReceptionProcessService } from './reception-process.service';
 
 @Controller('reception-process')
@@ -20,6 +24,15 @@ export class ReceptionProcessController {
   @Post()
   create(@Body() createReceptionProcessDto: CreateReceptionProcessDto) {
     return this.receptionProcessService.create(createReceptionProcessDto);
+  }
+
+  @Post('notify-metric')
+  createMetric(
+    @Body() createNotificationMetricDto: CreateNotificationMetricDto,
+  ) {
+    return this.receptionProcessService.createMetric(
+      createNotificationMetricDto,
+    );
   }
 
   @Get()

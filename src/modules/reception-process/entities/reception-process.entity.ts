@@ -9,8 +9,8 @@ import {
 } from 'typeorm';
 
 import { NotificationMetric } from './notification-metric.entity';
+import { User } from 'src/modules/users/entities/user.entity';
 import { ProcessEvent } from './process-events.entity';
-import { User } from 'src/modules/users';
 
 export enum ReceptionProcessStatus {
   EN_PROGRESO = 'EN_PROGRESO',

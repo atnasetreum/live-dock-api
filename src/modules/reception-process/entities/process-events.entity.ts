@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 
 import { ReceptionProcess } from './reception-process.entity';
-import { User } from 'src/modules/users';
+import { User } from 'src/modules/users/entities/user.entity';
 
 export enum ProcessEventStatus {
   INGRESO_AUTORIZADO = 'INGRESO_AUTORIZADO',
@@ -20,6 +20,7 @@ export enum ProcessEventStatus {
 }
 
 export enum ProcessEventRole {
+  VIGILANCIA = 'VIGILANCIA',
   LOGISTICA = 'LOGISTICA',
   CALIDAD = 'CALIDAD',
   PRODUCCION = 'PRODUCCION',

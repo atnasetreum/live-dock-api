@@ -10,12 +10,21 @@ import {
 import { EnvConfiguration, JoiValidationSchema } from './config';
 import { AppKeyMiddleware, JwtMiddleware } from './middlewares';
 import { AuthModule, JwtService } from './auth';
-import { SessionsModule, UsersModule } from './modules';
-import { RequestLoggerMiddleware } from './middlewares/request-logger.middleware';
+
 import { PushNotificationsModule } from './modules/push-notifications/push-notifications.module';
 import { ReceptionProcessModule } from './modules/reception-process/reception-process.module';
+import { RequestLoggerMiddleware } from './middlewares/request-logger.middleware';
+import { SessionsModule } from './modules/sessions/sessions.module';
+import { UsersModule } from './modules/users/users.module';
 
 const ENV = process.env.NODE_ENV;
+
+const commonExcludePaths = [
+  {
+    path: 'reception-process/notify-metric',
+    method: RequestMethod.POST,
+  },
+];
 
 @Module({
   imports: [
@@ -50,11 +59,18 @@ const ENV = process.env.NODE_ENV;
 })
 export class AppModule implements NestModule {
   public configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
-    consumer.apply(AppKeyMiddleware).forRoutes('*');
+    consumer
+      .apply(RequestLoggerMiddleware)
+      .exclude(...commonExcludePaths)
+      .forRoutes('*');
+    consumer
+      .apply(AppKeyMiddleware)
+      .exclude(...commonExcludePaths)
+      .forRoutes('*');
     consumer
       .apply(JwtMiddleware)
       .exclude(
+        ...commonExcludePaths,
         { path: 'users/seed', method: RequestMethod.POST },
         { path: 'auth/check-token', method: RequestMethod.POST },
         {

@@ -14,12 +14,12 @@ import { Repository } from 'typeorm';
 import { serialize } from 'cookie';
 import * as argon2 from 'argon2';
 
+import { User } from 'src/modules/users/entities/user.entity';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { ENV_PRODUCTION } from 'src/constants';
 import { StringifyOptions } from 'querystring';
 import { UserSession } from 'src/middlewares';
 import { JwtService } from './jwt.service';
-import { User } from 'src/modules/users';
 
 @Injectable()
 export class AuthService {

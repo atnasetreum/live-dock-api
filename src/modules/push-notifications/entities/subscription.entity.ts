@@ -7,7 +7,7 @@ import {
   ManyToOne,
 } from 'typeorm';
 
-import { User } from 'src/modules/users';
+import { User } from 'src/modules/users/entities/user.entity';
 
 @Entity({ name: 'subscriptions' })
 export class Subscription {
