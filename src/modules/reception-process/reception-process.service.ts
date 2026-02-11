@@ -77,6 +77,7 @@ export class ReceptionProcessService {
       accionAt,
       reactionTimeSec,
       systemDelaySec,
+      metadata,
     } = createNotificationMetricDto;
 
     const createdBy = await this.usersService.findOne(notifiedUserId);
@@ -94,6 +95,7 @@ export class ReceptionProcessService {
       ...(accionAt && { actionAt: accionAt }),
       ...(reactionTimeSec && { reactionTimeSec }),
       ...(systemDelaySec !== undefined && { systemDelaySec }),
+      metadata: JSON.parse(metadata) as Record<string, any>,
       createdBy,
       createdAt: new Date(),
       updatedAt: new Date(),

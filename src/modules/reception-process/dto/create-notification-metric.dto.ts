@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsOptional,
   IsPositive,
+  IsString,
 } from 'class-validator';
 import { NotificationEventType } from '../entities';
 
@@ -31,4 +32,7 @@ export class CreateNotificationMetricDto {
   @IsOptional()
   @IsNumber()
   systemDelaySec?: number;
+
+  @IsString()
+  metadata: string;
 }
