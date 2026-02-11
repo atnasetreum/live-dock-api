@@ -128,6 +128,18 @@ export class ReceptionProcessService {
     const receptionProcess = await this.receptionProcessRepository.findOne({
       where: { id },
       relations: this.relations,
+      select: {
+        metrics: {
+          id: true,
+          eventType: true,
+          visibleAt: true,
+          actionAt: true,
+          reactionTimeSec: true,
+          systemDelaySec: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
     });
 
     if (!receptionProcess) {

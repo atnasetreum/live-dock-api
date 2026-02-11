@@ -11,12 +11,16 @@ import { ReceptionProcess } from './reception-process.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 
 export enum ProcessEventStatus {
-  INGRESO_AUTORIZADO = 'INGRESO_AUTORIZADO',
-  CALIDAD_APROBADO = 'CALIDAD_APROBADO',
-  CALIDAD_RECHAZADO = 'CALIDAD_RECHAZADO',
-  DESCARGA_FINALIZADA = 'DESCARGA_FINALIZADA',
-  PESO_CAPTURADO = 'PESO_CAPTURADO',
-  LIBERADO_SAP = 'LIBERADO_SAP',
+  PROVIDER_ARRIVED = 'PROVIDER_ARRIVED',
+  ENTRY_AUTHORIZED = 'ENTRY_AUTHORIZED', // Hay forma de que logistica negara el acceso? => ENTRY_DENIED
+  QUALITY_APPROVED = 'QUALITY_APPROVED',
+  QUALITY_REJECTED = 'QUALITY_REJECTED',
+  UNLOAD_STARTED = 'UNLOAD_STARTED', // Este es un estatus adicional, para que produccion notifique cuando inicia la descarga
+  UNLOAD_COMPLETED = 'UNLOAD_COMPLETED', // y cuando la termina (opcional)
+  WEIGHT_RECORDED = 'WEIGHT_RECORDED',
+  SAP_RELEASE_COMPLETED = 'SAP_RELEASE_COMPLETED',
+  EXIT_AUTHORIZED = 'EXIT_AUTHORIZED',
+  PROCESS_COMPLETED = 'PROCESS_COMPLETED', // Este y el de arriba es el mismo, solo hay que ver cual sera la mejor opcion de descripcion
 }
 
 export enum ProcessEventRole {
@@ -37,7 +41,7 @@ export class ProcessEvent {
     type: 'enum',
     enum: ProcessEventStatus,
   })
-  type: ProcessEventStatus;
+  status: ProcessEventStatus;
 
   @Column({
     type: 'enum',

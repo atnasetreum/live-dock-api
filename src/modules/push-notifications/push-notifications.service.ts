@@ -28,6 +28,7 @@ webpush.setVapidDetails(
 export class PushNotificationsService {
   private readonly logger = new Logger(PushNotificationsService.name);
   private publicBackendUrl: string;
+  private appKey: string;
 
   constructor(
     @Inject(REQUEST) private readonly request: Request,
@@ -38,6 +39,7 @@ export class PushNotificationsService {
   ) {
     this.publicBackendUrl =
       this.configService.get<string>('publicBackendUrl') ?? '';
+    this.appKey = this.configService.get<string>('appKey') ?? '';
   }
 
   get currentUser() {
@@ -149,6 +151,7 @@ export class PushNotificationsService {
             id,
             notifiedUserId: subscription.user.id,
             publicBackendUrl: this.publicBackendUrl,
+            appKey: this.appKey,
           },
         }),
       ),
