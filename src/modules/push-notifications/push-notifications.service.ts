@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { REQUEST } from '@nestjs/core';
 
 import * as URLSafeBase64 from 'urlsafe-base64';
@@ -7,6 +8,7 @@ import { In, Repository } from 'typeorm';
 import { type Request } from 'express';
 import * as webpush from 'web-push';
 
+import { ProcessEventRole, ProcessState } from '../reception-process/entities';
 import { User, UserRole } from '../users/entities/user.entity';
 import { Subscription } from './entities/subscription.entity';
 import * as vapidKeys from 'src/config/vapid-keys.json';
@@ -15,7 +17,6 @@ import {
   ReceptionProcess,
   ReceptionProcessTypeOfMaterial,
 } from '../reception-process/entities/reception-process.entity';
-import { ConfigService } from '@nestjs/config';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
 webpush.setVapidDetails(
@@ -60,6 +61,29 @@ export class PushNotificationsService {
       await this.subscriptionRepository.save(subscriptionNew);
 
     return subscriptionCreate;
+  }
+
+  async unsubscribe({ subscription }: { subscription: string }) {
+    const user = this.currentUser;
+
+    const existingSubscription = await this.subscriptionRepository.findOne({
+      where: {
+        subscription,
+        user: { id: user.id },
+      },
+    });
+
+    if (!existingSubscription) {
+      this.logger.warn(`Subscription not found for user ${user.id}`);
+      return { message: 'Subscription not found' };
+    }
+
+    existingSubscription.isActive = false;
+    existingSubscription.updatedAt = new Date();
+
+    await this.subscriptionRepository.save(existingSubscription);
+
+    return { message: 'Successfully unsubscribed' };
   }
 
   findPublicKey() {
@@ -135,7 +159,11 @@ export class PushNotificationsService {
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
           title: 'Llegada de pipa 🚛➡️🏭',
-          body: `# Identificador: ${id} \nTipo de material: ${typeOfMaterial} \nCreado por: ${createdBy.name}`,
+          body: `
+            # Identificador: ${id} \n
+            Tipo de material: ${typeOfMaterial} \n
+            Creado por: ${createdBy.name}
+          `,
           typeNotification: 'waiting',
           tagId: `reception-process-${id}`,
           eventTime,
@@ -152,6 +180,8 @@ export class PushNotificationsService {
             notifiedUserId: subscription.user.id,
             publicBackendUrl: this.publicBackendUrl,
             appKey: this.appKey,
+            eventRole: ProcessEventRole.LOGISTICA,
+            statusProcess: ProcessState.PENDIENTE_AUTORIZACION,
           },
         }),
       ),

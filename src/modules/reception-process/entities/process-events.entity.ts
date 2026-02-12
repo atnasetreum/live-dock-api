@@ -10,17 +10,36 @@ import {
 import { ReceptionProcess } from './reception-process.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 
-export enum ProcessEventStatus {
-  PROVIDER_ARRIVED = 'PROVIDER_ARRIVED',
-  ENTRY_AUTHORIZED = 'ENTRY_AUTHORIZED', // Hay forma de que logistica negara el acceso? => ENTRY_DENIED
-  QUALITY_APPROVED = 'QUALITY_APPROVED',
-  QUALITY_REJECTED = 'QUALITY_REJECTED',
-  UNLOAD_STARTED = 'UNLOAD_STARTED', // Este es un estatus adicional, para que produccion notifique cuando inicia la descarga
-  UNLOAD_COMPLETED = 'UNLOAD_COMPLETED', // y cuando la termina (opcional)
-  WEIGHT_RECORDED = 'WEIGHT_RECORDED',
-  SAP_RELEASE_COMPLETED = 'SAP_RELEASE_COMPLETED',
-  EXIT_AUTHORIZED = 'EXIT_AUTHORIZED',
-  PROCESS_COMPLETED = 'PROCESS_COMPLETED', // Este y el de arriba es el mismo, solo hay que ver cual sera la mejor opcion de descripcion
+export enum Event {
+  REGISTRA_INGRESO = 'REGISTRA_INGRESO',
+  CAMBIO_ESTADO = 'CAMBIO_ESTADO',
+  CONFIRMA_NOTIFICACION = 'CONFIRMA_NOTIFICACION',
+  /* LOGISTICA_AUTORIZA = 'LOGISTICA_AUTORIZA',
+  LOGISTICA_RECHAZA = 'LOGISTICA_RECHAZA',
+  CALIDAD_APRUEBA = 'CALIDAD_APRUEBA',
+  CALIDAD_RECHAZA = 'CALIDAD_RECHAZA',
+  PRODUCCION_FINALIZA_DESCARGA = 'PRODUCCION_FINALIZA_DESCARGA',
+  LOGISTICA_REGISTRA_PESO = 'LOGISTICA_REGISTRA_PESO',
+  CALIDAD_LIBERA_SAP = 'CALIDAD_LIBERA_SAP',
+  VIGILANCIA_CONFIRMA_SALIDA = 'VIGILANCIA_CONFIRMA_SALIDA', */
+}
+
+export enum ProcessState {
+  REGISTRADA = 'REGISTRADA',
+  PENDIENTE_CONFIRMACION = 'PENDIENTE_CONFIRMACION',
+  PENDIENTE_AUTORIZACION = 'PENDIENTE_AUTORIZACION',
+  /* 
+  PENDIENTE_REVISION_CALIDAD = 'PENDIENTE_REVISION_CALIDAD',
+  APROBADA_CALIDAD = 'APROBADA_CALIDAD',
+  EN_DESCARGA = 'EN_DESCARGA',
+  DESCARGA_COMPLETADA = 'DESCARGA_COMPLETADA',
+  PENDIENTE_REGISTRO_PESO = 'PENDIENTE_REGISTRO_PESO',
+  PESO_REGISTRADO = 'PESO_REGISTRADO',
+  PENDIENTE_LIBERACION_SAP = 'PENDIENTE_LIBERACION_SAP',
+  LIBERADA_SAP = 'LIBERADA_SAP',
+  PENDIENTE_SALIDA = 'PENDIENTE_SALIDA',
+  RECHAZADA = 'RECHAZADA',
+  CONCLUIDA = 'CONCLUIDA', */
 }
 
 export enum ProcessEventRole {
@@ -28,6 +47,7 @@ export enum ProcessEventRole {
   LOGISTICA = 'LOGISTICA',
   CALIDAD = 'CALIDAD',
   PRODUCCION = 'PRODUCCION',
+  SISTEMA = 'SISTEMA',
 }
 
 @Entity({
@@ -39,9 +59,15 @@ export class ProcessEvent {
 
   @Column({
     type: 'enum',
-    enum: ProcessEventStatus,
+    enum: ProcessState,
   })
-  status: ProcessEventStatus;
+  status: ProcessState;
+
+  @Column({
+    type: 'enum',
+    enum: Event,
+  })
+  event: Event;
 
   @Column({
     type: 'enum',

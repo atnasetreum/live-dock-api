@@ -5,6 +5,7 @@ import { PushNotificationsModule } from '../push-notifications/push-notification
 import { NotificationMetric, ProcessEvent, ReceptionProcess } from './entities';
 import { ReceptionProcessController } from './reception-process.controller';
 import { ReceptionProcessService } from './reception-process.service';
+import { SessionsModule } from '../sessions/sessions.module';
 import { UsersModule } from '../users/users.module';
 
 @Module({
@@ -16,6 +17,7 @@ import { UsersModule } from '../users/users.module';
     ]),
     PushNotificationsModule,
     UsersModule,
+    SessionsModule,
   ],
   controllers: [ReceptionProcessController],
   providers: [ReceptionProcessService],

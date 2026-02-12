@@ -5,18 +5,23 @@ import { REQUEST } from '@nestjs/core';
 import { Repository } from 'typeorm';
 
 import { PushNotificationsService } from '../push-notifications/push-notifications.service';
+import { SessionsGateway } from '../sessions/sessions.gateway';
+import { UsersService } from '../users/users.service';
+import { User } from '../users/entities/user.entity';
 import {
+  Event,
   NotificationEventType,
   NotificationMetric,
+  ProcessEvent,
+  ProcessEventRole,
+  ProcessState,
   ReceptionProcess,
 } from './entities';
-import { User } from '../users/entities/user.entity';
 import {
   CreateNotificationMetricDto,
   CreateReceptionProcessDto,
   UpdateReceptionProcessDto,
 } from './dto';
-import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class ReceptionProcessService {
@@ -33,10 +38,13 @@ export class ReceptionProcessService {
     @Inject(REQUEST) private readonly request: Request,
     @InjectRepository(ReceptionProcess)
     private readonly receptionProcessRepository: Repository<ReceptionProcess>,
+    @InjectRepository(ProcessEvent)
+    private readonly processEventRepository: Repository<ProcessEvent>,
     @InjectRepository(NotificationMetric)
     private readonly notificationMetricRepository: Repository<NotificationMetric>,
     private readonly pushNotificationsService: PushNotificationsService,
     private readonly usersService: UsersService,
+    private readonly sessionsGateway: SessionsGateway,
   ) {}
 
   get currentUser() {
@@ -44,28 +52,57 @@ export class ReceptionProcessService {
   }
 
   async create(createReceptionProcessDto: CreateReceptionProcessDto) {
-    const currentUser = this.currentUser;
+    const createdBy = this.currentUser;
 
-    this.logger.debug(
-      `Creating reception process for user ${currentUser.email}`,
-    );
+    this.logger.debug(`Creating reception process for user ${createdBy.email}`);
 
     const { typeOfMaterial } = createReceptionProcessDto;
 
     const receptionProcessNew = await this.receptionProcessRepository.save({
       typeOfMaterial,
-      createdBy: currentUser,
+      createdBy,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    const receptionProcess = await this.findOne(receptionProcessNew.id);
+    const id = receptionProcessNew.id;
+
+    await this.processEventRepository.save({
+      event: Event.REGISTRA_INGRESO,
+      status: ProcessState.REGISTRADA,
+      role: ProcessEventRole.VIGILANCIA,
+      receptionProcess: {
+        id,
+      },
+      createdBy,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const receptionProcess = await this.findOne(id);
 
     await this.pushNotificationsService.createReceptionProcessNotification(
       receptionProcess,
     );
 
-    return receptionProcess;
+    await this.processEventRepository.save({
+      event: Event.CAMBIO_ESTADO,
+      status: ProcessState.PENDIENTE_CONFIRMACION,
+      role: ProcessEventRole.SISTEMA,
+      receptionProcess: {
+        id,
+      },
+      createdBy,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const currentReceptionProcess = await this.findOne(id);
+
+    // ✅ Emitir a tiempo real
+    this.sessionsGateway.emitReceptionProcessCreated(currentReceptionProcess);
+
+    return currentReceptionProcess;
   }
 
   async createMetric(createNotificationMetricDto: CreateNotificationMetricDto) {
@@ -78,6 +115,8 @@ export class ReceptionProcessService {
       reactionTimeSec,
       systemDelaySec,
       metadata,
+      eventRole,
+      statusProcess,
     } = createNotificationMetricDto;
 
     const createdBy = await this.usersService.findOne(notifiedUserId);
@@ -102,7 +141,10 @@ export class ReceptionProcessService {
     });
 
     if (
-      eventType === NotificationEventType.EXPIRED &&
+      [
+        NotificationEventType.EXPIRED,
+        NotificationEventType.NOTIFICATION_CLICKED_NOT_ACTION,
+      ].includes(eventType) &&
       !receptionProcess.metrics.some(
         (metric) =>
           metric.eventType === NotificationEventType.ACTION_CLICKED_CONFIRM,
@@ -112,6 +154,24 @@ export class ReceptionProcessService {
         receptionProcess,
         createdBy,
       );
+    }
+
+    if (
+      NotificationEventType.ACTION_CLICKED_CONFIRM &&
+      statusProcess &&
+      eventRole
+    ) {
+      await this.processEventRepository.save({
+        event: Event.CONFIRMA_NOTIFICACION,
+        status: ProcessState[statusProcess],
+        role: ProcessEventRole[eventRole],
+        receptionProcess: {
+          id,
+        },
+        createdBy,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
     }
 
     return notificationMetricNew;
@@ -138,6 +198,14 @@ export class ReceptionProcessService {
           systemDelaySec: true,
           createdAt: true,
           updatedAt: true,
+        },
+      },
+      order: {
+        metrics: {
+          createdAt: 'ASC',
+        },
+        events: {
+          createdAt: 'ASC',
         },
       },
     });

@@ -6,7 +6,12 @@ import {
   IsPositive,
   IsString,
 } from 'class-validator';
-import { NotificationEventType } from '../entities';
+
+import {
+  NotificationEventType,
+  ProcessEventRole,
+  ProcessState,
+} from '../entities';
 
 export class CreateNotificationMetricDto {
   @IsPositive()
@@ -35,4 +40,12 @@ export class CreateNotificationMetricDto {
 
   @IsString()
   metadata: string;
+
+  @IsOptional()
+  @IsEnum(ProcessEventRole)
+  eventRole?: ProcessEventRole;
+
+  @IsOptional()
+  @IsEnum(ProcessState)
+  statusProcess?: ProcessState;
 }

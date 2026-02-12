@@ -30,6 +30,19 @@ export class PushNotificationsController {
     });
   }
 
+  @Post('/unsubscribe')
+  unsubscribe(@Req() req: Request) {
+    const { subscription } = req.body as { subscription: string };
+
+    if (!subscription) {
+      throw new BadRequestException('Subscription is required');
+    }
+
+    return this.pushNotificationsService.unsubscribe({
+      subscription,
+    });
+  }
+
   @Get('/public-key')
   findPublicKey() {
     return this.pushNotificationsService.findPublicKey();

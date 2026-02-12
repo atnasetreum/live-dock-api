@@ -12,7 +12,9 @@ import { Socket } from 'socket.io';
 
 import { SessionMetadata, SessionsService } from './sessions.service';
 import { UsersService } from '../users/users.service';
+import { User } from '../users/entities/user.entity';
 import { JwtService } from 'src/auth';
+import { ReceptionProcess } from '../reception-process/entities';
 
 @WebSocketGateway({
   namespace: 'sessions',
@@ -39,7 +41,7 @@ export class SessionsGateway
     return this.sessionsService.getAllUserIds();
   }
 
-  private get currentUsers() {
+  private get currentUsers(): Promise<User[]> {
     return this.usersService.findAllByIds(this.currentUsersIds);
   }
 
@@ -191,6 +193,14 @@ export class SessionsGateway
   private async updateCurrentUser(client: Socket, userId: number) {
     const user = await this.usersService.findOne(userId);
     client.emit('sessions:current_user', user);
+  }
+
+  emitReceptionProcessCreated(receptionProcess: ReceptionProcess): void {
+    this.logger.debug(
+      `Emitting reception process created event for process ${receptionProcess.id}`,
+    );
+
+    this.emitAllUsers('reception-process:created', receptionProcess);
   }
 
   /* @SubscribeMessage('sessions:new_user_connected')

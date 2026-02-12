@@ -141,5 +141,7 @@ export class UsersService {
 
       await this.userRepository.upsert(user, ['email']);
     }
+
+    return { message: 'Seed completed' };
   }
 }
