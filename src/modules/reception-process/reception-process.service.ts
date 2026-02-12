@@ -174,6 +174,11 @@ export class ReceptionProcessService {
       });
     }
 
+    const currentReceptionProcess = await this.findOne(id);
+
+    // ✅ Emitir a tiempo real
+    this.sessionsGateway.emitReceptionProcessCreated(currentReceptionProcess);
+
     return notificationMetricNew;
   }
 
