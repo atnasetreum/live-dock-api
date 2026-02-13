@@ -8,19 +8,11 @@ import { In, Repository } from 'typeorm';
 import { type Request } from 'express';
 import * as webpush from 'web-push';
 
+import { ReceptionProcess } from '../reception-process/entities/reception-process.entity';
 import { User, UserRole } from '../users/entities/user.entity';
 import { Subscription } from './entities/subscription.entity';
 import * as vapidKeys from 'src/config/vapid-keys.json';
 import { UsersService } from '../users/users.service';
-import {
-  ReceptionProcess,
-  ReceptionProcessTypeOfMaterial,
-} from '../reception-process/entities/reception-process.entity';
-import {
-  ProcessEventOption,
-  ProcessEventRole,
-  ProcessState,
-} from '../reception-process/entities';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
 webpush.setVapidDetails(
@@ -34,6 +26,7 @@ export class PushNotificationsService {
   private readonly logger = new Logger(PushNotificationsService.name);
   private publicBackendUrl: string;
   private appKey: string;
+  private readonly ROOT_IMG_FOLDER = '/push-notifications';
 
   constructor(
     @Inject(REQUEST) private readonly request: Request,
@@ -49,6 +42,24 @@ export class PushNotificationsService {
 
   get currentUser() {
     return this.request['user'] as User;
+  }
+
+  get logisticsUserIds(): Promise<number[]> {
+    return (async () => {
+      const users = await this.usersService.findAllByRole(UserRole.LOGISTICA);
+      return users.map((user) => user.id);
+    })();
+  }
+
+  get qualityUserIds(): Promise<number[]> {
+    return (async () => {
+      const users = await this.usersService.findAllByRole(UserRole.CALIDAD);
+      return users.map((user) => user.id);
+    })();
+  }
+
+  get eventTime() {
+    return new Date().toISOString();
   }
 
   async createSubscribe({ subscription }: { subscription: string }) {
@@ -122,65 +133,6 @@ export class PushNotificationsService {
     return { message: 'test push endpoint' };
   }
 
-  async createReceptionProcessNotification(
-    receptionProcess: {
-      typeOfMaterial: ReceptionProcessTypeOfMaterial;
-      createdBy: User;
-    } & ReceptionProcess,
-    expiredUser?: User,
-  ) {
-    const { id, typeOfMaterial, createdBy } = receptionProcess;
-
-    let usersIds: number[] = [];
-
-    if (!expiredUser) {
-      const logisticsUsers = await this.usersService.findAllByRole(
-        UserRole.LOGISTICA,
-      );
-
-      console.log({ size: logisticsUsers.length });
-
-      // usersIds = [createdBy.id, ...logisticsUsers.map((user) => user.id)];
-      // usersIds = [...logisticsUsers.map((user) => user.id)]; // Correcto
-      usersIds = [createdBy.id]; // TODO: Eliminar esto
-    } else {
-      usersIds = [expiredUser.id];
-    }
-
-    const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
-
-    const eventTime = new Date().toISOString();
-
-    await Promise.all(
-      subscriptions.map((subscription) =>
-        this.sendNotification(subscription, {
-          title: `Ingreso de pipa #${id} 🚛➡️🏭`,
-          body: `Tipo de Material: ${typeOfMaterial}\nCreado por: ${createdBy.name}`,
-          requireInteraction: true,
-          image: 'img-ingreso-pipa.png',
-          actions: [
-            {
-              action: 'confirm',
-              title: 'Confirmar',
-            },
-          ],
-          data: {
-            id,
-            eventTime,
-            notifiedUserId: subscription.user.id,
-            publicBackendUrl: this.publicBackendUrl,
-            appKey: this.appKey,
-            nextEvent: {
-              event: ProcessEventOption.LOGISTICA_CONFIRMA_PENDIENTE_DE_INGRESO,
-              statusProcess: ProcessState.LOGISTICA_PENDIENTE_DE_AUTORIZACION,
-              eventRole: ProcessEventRole.LOGISTICA,
-            },
-          },
-        }),
-      ),
-    );
-  }
-
   async findSubscriptionsByUserIds(userIds: number[]) {
     return this.subscriptionRepository.find({
       where: {
@@ -193,55 +145,120 @@ export class PushNotificationsService {
     });
   }
 
-  async createPendingForTestingNotification(
+  async notifiesOfArrival(
     receptionProcess: ReceptionProcess,
-    createdBy: User,
+    expiredUser?: User,
   ) {
-    const qualityUsers = await this.usersService.findAllByRole(
-      UserRole.CALIDAD,
+    const {
+      id: receptionProcessId,
+      typeOfMaterial,
+      createdBy,
+    } = receptionProcess;
+
+    let usersIds: number[] = [];
+
+    if (!expiredUser) {
+      //const logisticsUserIds = await this.logisticsUserIds;
+      // usersIds = [...logisticsUserIds]; // Correcto
+      usersIds = [createdBy.id]; // TODO: Eliminar esto
+    } else {
+      usersIds = [expiredUser.id];
+    }
+
+    const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
+
+    const actionConfirm = 'logistica_confirma_ingreso';
+
+    await Promise.all(
+      subscriptions.map((subscription) =>
+        this.sendNotification(subscription, {
+          title: `Ingreso de pipa #${receptionProcessId} 🚛➡️🏭`,
+          body: `Tipo de Material: ${typeOfMaterial}\nCreado por: ${createdBy.name}`,
+          image: 'img-ingreso-pipa.png',
+          actions: [
+            {
+              action: 'confirm',
+              title: 'Confirmar',
+              icon: `${this.ROOT_IMG_FOLDER}/confirm-icon.webp`,
+            },
+          ],
+          tagId: `ingreso-pipa-${receptionProcessId}`,
+          data: {
+            id: receptionProcessId,
+            eventTime: this.eventTime,
+            notifiedUserId: subscription.user.id,
+            publicBackendUrl: this.publicBackendUrl,
+            appKey: this.appKey,
+            actionConfirm,
+          },
+        }),
+      ),
     );
+  }
 
-    console.log({ size: qualityUsers.length });
-
-    // usersIds = [createdBy.id, ...qualityUsers.map((user) => user.id)];
-    // usersIds = [...qualityUsers.map((user) => user.id)]; // Correcto
+  async notifyPendingTest(receptionProcess: ReceptionProcess, createdBy: User) {
+    // usersIds = [...this.qualityUserIds]; // Correcto
     const usersIds = [receptionProcess.createdBy.id]; // TODO: Eliminar esto
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
     const eventTime = new Date().toISOString();
 
-    const { id, typeOfMaterial } = receptionProcess;
+    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+
+    const actionConfirm = 'calidad_confirma_test';
 
     await Promise.all(
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
-          title: 'Pendiente de evaluacion 🧪🔍',
-          body: `
-            # Identificador: ${id}\n
-            Tipo de material: ${typeOfMaterial}\n
-            Usuario que autorizó: ${createdBy.name}
-          `,
+          title: `Pendiente de evaluacion #${receptionProcessId} 🧪🔍`,
+          body: `Tipo de material: ${typeOfMaterial}\nUsuario que autorizó: ${createdBy.name}`,
           image: 'img-pending-test.png',
-          eventTime,
-          requireInteraction: true,
           actions: [
             {
               action: 'confirm',
               title: 'Confirmar',
+              icon: `${this.ROOT_IMG_FOLDER}/confirm-icon.webp`,
             },
           ],
           data: {
-            id,
+            id: receptionProcessId,
+            eventTime,
             notifiedUserId: subscription.user.id,
             publicBackendUrl: this.publicBackendUrl,
             appKey: this.appKey,
-            nextEvent: {
-              event: ProcessEventOption.CALIDAD_CONFIRMA_PENDIENTE_DE_ANALISIS,
-              statusProcess:
-                ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_DE_ANALISIS,
-              eventRole: ProcessEventRole.CALIDAD,
-            },
+            actionConfirm,
+          },
+        }),
+      ),
+    );
+  }
+
+  async notifyTestRejected(
+    receptionProcess: ReceptionProcess,
+    createdBy: User,
+  ) {
+    // usersIds = [...this.qualityUserIds, ...this.logisticsUserIds]; // Correcto
+    const usersIds = [receptionProcess.createdBy.id]; // TODO: Eliminar esto
+
+    const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
+
+    const eventTime = new Date().toISOString();
+
+    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+
+    await Promise.all(
+      subscriptions.map((subscription) =>
+        this.sendNotification(subscription, {
+          title: `Rechazado por calidad #${receptionProcessId} ❌🧪`,
+          body: `Tipo de material: ${typeOfMaterial}\nUsuario que rechazo: ${createdBy.name}`,
+          image: 'image-rejected.png',
+          data: {
+            id: receptionProcessId,
+            eventTime,
+            notifiedUserId: subscription.user.id,
+            publicBackendUrl: this.publicBackendUrl,
+            appKey: this.appKey,
           },
         }),
       ),

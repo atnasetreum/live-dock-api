@@ -61,12 +61,38 @@ export class ReceptionProcessService {
     return currentReceptionProcess;
   }
 
-  async create(createReceptionProcessDto: CreateReceptionProcessDto) {
+  async createProcessEvent({
+    receptionProcessId,
+    createdBy,
+    event,
+    status,
+    role,
+  }: {
+    receptionProcessId: number;
+    createdBy: User;
+    event: ProcessEventOption;
+    status: ProcessState;
+    role: ProcessEventRole;
+  }) {
+    const processEvent = await this.processEventRepository.save({
+      event,
+      status,
+      role,
+      receptionProcess: {
+        id: receptionProcessId,
+      },
+      createdBy,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return processEvent;
+  }
+
+  async create({ typeOfMaterial }: CreateReceptionProcessDto) {
     const createdBy = this.currentUser;
 
     this.logger.debug(`Creating reception process for user ${createdBy.email}`);
-
-    const { typeOfMaterial } = createReceptionProcessDto;
 
     const receptionProcessNew = await this.receptionProcessRepository.save({
       typeOfMaterial,
@@ -75,44 +101,38 @@ export class ReceptionProcessService {
       updatedAt: new Date(),
     });
 
-    const id = receptionProcessNew.id;
+    const receptionProcessId = receptionProcessNew.id;
 
-    await this.processEventRepository.save({
+    // Registra nuevo evento
+    await this.createProcessEvent({
+      receptionProcessId,
+      createdBy,
       event: ProcessEventOption.VIGILANCIA_REGISTRA_INGRESO,
       status: ProcessState.VIGILANCIA_REGISTRO_INGRESO,
       role: ProcessEventRole.VIGILANCIA,
-      receptionProcess: {
-        id,
-      },
-      createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
 
-    const receptionProcess = await this.findOne(id);
+    const receptionProcess = await this.findOne(receptionProcessId);
 
-    await this.pushNotificationsService.createReceptionProcessNotification(
-      receptionProcess,
-    );
+    // Notifica la llegada de material
+    await this.pushNotificationsService.notifiesOfArrival(receptionProcess);
 
-    await this.processEventRepository.save({
+    // Registra nuevo evento
+    await this.createProcessEvent({
+      receptionProcessId,
+      createdBy,
       event: ProcessEventOption.SISTEMA_CAMBIA_ESTATUS,
       status: ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_INGRESO,
       role: ProcessEventRole.SISTEMA,
-      receptionProcess: {
-        id,
-      },
-      createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
 
-    return this.notifySocketStateReceptionProcess(id);
+    // Notifica vía socket el cambio de estado
+    return this.notifySocketStateReceptionProcess(receptionProcessId);
   }
 
   async createMetric(createNotificationMetricDto: CreateNotificationMetricDto) {
     const {
-      id,
+      id: receptionProcessId,
       visibleAt,
       eventType,
       notifiedUserId,
@@ -120,16 +140,16 @@ export class ReceptionProcessService {
       reactionTimeSec,
       systemDelaySec,
       metadata,
-      nextEvent,
+      actionConfirm,
     } = createNotificationMetricDto;
+
+    const receptionProcess = await this.findOne(receptionProcessId);
 
     const createdBy = await this.usersService.findOne(notifiedUserId);
 
     this.logger.debug(
-      `Creating notification metric for user ${createdBy.email} and reception process ${id}`,
+      `Creating notification metric for user ${createdBy.email} and reception process id: ${receptionProcessId}`,
     );
-
-    const receptionProcess = await this.findOne(id);
 
     await this.notificationMetricRepository.save({
       eventType,
@@ -148,34 +168,39 @@ export class ReceptionProcessService {
       [
         NotificationEventType.EXPIRED,
         NotificationEventType.NOTIFICATION_CLICKED_NOT_ACTION,
-      ].includes(eventType) &&
-      !receptionProcess.metrics.some(
-        (metric) =>
-          metric.eventType === NotificationEventType.ACTION_CLICKED_CONFIRM,
-      )
+      ].includes(eventType)
     ) {
-      await this.pushNotificationsService.createReceptionProcessNotification(
-        receptionProcess,
-        createdBy,
-      );
+      switch (actionConfirm) {
+        case 'logistica_confirma_ingreso':
+          // Notifica la llegada de material
+          await this.pushNotificationsService.notifiesOfArrival(
+            receptionProcess,
+            createdBy,
+          );
+          break;
+      }
+
+      return {
+        message: `No action taken for event type ${eventType} with actionConfirm ${actionConfirm}`,
+      };
     }
 
-    if (NotificationEventType.ACTION_CLICKED_CONFIRM && nextEvent) {
-      const { event, statusProcess, eventRole } = nextEvent;
-      await this.processEventRepository.save({
-        event: ProcessEventOption[event],
-        status: ProcessState[statusProcess],
-        role: ProcessEventRole[eventRole],
-        receptionProcess: {
-          id,
-        },
-        createdBy,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+    if (NotificationEventType.ACTION_CLICKED_CONFIRM) {
+      switch (actionConfirm) {
+        case 'logistica_confirma_ingreso':
+          // Registra nuevo evento
+          await this.createProcessEvent({
+            receptionProcessId,
+            createdBy,
+            event: ProcessEventOption.LOGISTICA_AUTORIZA_INGRESO,
+            status: ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_DE_ANALISIS,
+            role: ProcessEventRole.LOGISTICA,
+          });
+          break;
+      }
     }
 
-    return this.notifySocketStateReceptionProcess(id);
+    return this.notifySocketStateReceptionProcess(receptionProcessId);
   }
 
   findAll() {
@@ -225,49 +250,60 @@ export class ReceptionProcessService {
   }
 
   async changeOfStatus(createChangeOfStatusDto: CreateChangeOfStatusDto) {
-    const { id, newState, nextEvent, actionRole } = createChangeOfStatusDto;
+    const { id: receptionProcessId, actionRole } = createChangeOfStatusDto;
 
     const createdBy = this.currentUser;
 
-    await this.findOne(id);
-
-    const { event, statusProcess, eventRole } = nextEvent;
-
-    let eventCreated: ProcessEvent;
-
-    switch (newState) {
-      case 'autorizada':
-        eventCreated = await this.processEventRepository.save({
-          event: ProcessEventOption[event],
-          status: ProcessState[statusProcess],
-          role: ProcessEventRole[eventRole],
-          receptionProcess: {
-            id,
-          },
-          createdBy,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-
-        break;
-      default:
-        throw new NotFoundException(
-          `The new state ${newState} is not valid for change of status`,
-        );
-    }
-
-    const receptionProcess = await this.notifySocketStateReceptionProcess(id);
+    const receptionProcess = await this.findOne(receptionProcessId);
 
     switch (actionRole) {
       case 'logistica-autorizo-ingreso':
-        await this.pushNotificationsService.createPendingForTestingNotification(
+        // Registra nuevo evento
+        await this.createProcessEvent({
+          receptionProcessId,
+          createdBy,
+          event: ProcessEventOption.LOGISTICA_AUTORIZA_INGRESO,
+          status: ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_DE_ANALISIS,
+          role: ProcessEventRole.LOGISTICA,
+        });
+
+        // Notifica a calidad para que realice el análisis
+        await this.pushNotificationsService.notifyPendingTest(
           receptionProcess,
-          eventCreated.createdBy,
+          createdBy,
+        );
+        break;
+      case 'calidad-aprobo-material':
+        // Registra nuevo evento
+        await this.createProcessEvent({
+          receptionProcessId,
+          createdBy,
+          event: ProcessEventOption.CALIDAD_APRUEBA_MATERIAL,
+          status: ProcessState.CALIDAD_APROBO,
+          role: ProcessEventRole.CALIDAD,
+        });
+        // TODO: Este es el siguiente paso
+        break;
+      case 'calidad-rechazo-material':
+        // Registra nuevo evento
+        await this.createProcessEvent({
+          receptionProcessId,
+          createdBy,
+          event: ProcessEventOption.CALIDAD_RECHAZA_MATERIAL,
+          status: ProcessState.CALIDAD_RECHAZO,
+          role: ProcessEventRole.CALIDAD,
+        });
+
+        // Notifica que calidad rechazó el material
+        await this.pushNotificationsService.notifyTestRejected(
+          receptionProcess,
+          createdBy,
         );
         break;
     }
 
-    return receptionProcess;
+    // Notifica vía socket el cambio de estado
+    return this.notifySocketStateReceptionProcess(receptionProcessId);
   }
 
   update(id: number, updateReceptionProcessDto: UpdateReceptionProcessDto) {
