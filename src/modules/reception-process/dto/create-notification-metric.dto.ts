@@ -9,9 +9,21 @@ import {
 
 import {
   NotificationEventType,
+  ProcessEventOption,
   ProcessEventRole,
   ProcessState,
 } from '../entities';
+
+export class NextEventDto {
+  @IsEnum(ProcessEventOption)
+  event: ProcessEventOption;
+
+  @IsEnum(ProcessState)
+  statusProcess: ProcessState;
+
+  @IsEnum(ProcessEventRole)
+  eventRole: ProcessEventRole;
+}
 
 export class CreateNotificationMetricDto {
   @IsPositive()
@@ -42,10 +54,5 @@ export class CreateNotificationMetricDto {
   metadata: string;
 
   @IsOptional()
-  @IsEnum(ProcessEventRole)
-  eventRole?: ProcessEventRole;
-
-  @IsOptional()
-  @IsEnum(ProcessState)
-  statusProcess?: ProcessState;
+  nextEvent?: NextEventDto;
 }

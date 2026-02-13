@@ -9,15 +9,16 @@ import { SessionsGateway } from '../sessions/sessions.gateway';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
 import {
-  Event,
   NotificationEventType,
   NotificationMetric,
   ProcessEvent,
+  ProcessEventOption,
   ProcessEventRole,
   ProcessState,
   ReceptionProcess,
 } from './entities';
 import {
+  CreateChangeOfStatusDto,
   CreateNotificationMetricDto,
   CreateReceptionProcessDto,
   UpdateReceptionProcessDto,
@@ -51,6 +52,15 @@ export class ReceptionProcessService {
     return this.request['user'] as User;
   }
 
+  async notifySocketStateReceptionProcess(id: number) {
+    const currentReceptionProcess = await this.findOne(id);
+
+    // ✅ Emitir a tiempo real
+    this.sessionsGateway.emitReceptionProcessCreated(currentReceptionProcess);
+
+    return currentReceptionProcess;
+  }
+
   async create(createReceptionProcessDto: CreateReceptionProcessDto) {
     const createdBy = this.currentUser;
 
@@ -68,8 +78,8 @@ export class ReceptionProcessService {
     const id = receptionProcessNew.id;
 
     await this.processEventRepository.save({
-      event: Event.REGISTRA_INGRESO,
-      status: ProcessState.REGISTRADA,
+      event: ProcessEventOption.VIGILANCIA_REGISTRA_INGRESO,
+      status: ProcessState.VIGILANCIA_REGISTRO_INGRESO,
       role: ProcessEventRole.VIGILANCIA,
       receptionProcess: {
         id,
@@ -86,8 +96,8 @@ export class ReceptionProcessService {
     );
 
     await this.processEventRepository.save({
-      event: Event.CAMBIO_ESTADO,
-      status: ProcessState.PENDIENTE_CONFIRMACION,
+      event: ProcessEventOption.SISTEMA_CAMBIA_ESTATUS,
+      status: ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_INGRESO,
       role: ProcessEventRole.SISTEMA,
       receptionProcess: {
         id,
@@ -97,12 +107,7 @@ export class ReceptionProcessService {
       updatedAt: new Date(),
     });
 
-    const currentReceptionProcess = await this.findOne(id);
-
-    // ✅ Emitir a tiempo real
-    this.sessionsGateway.emitReceptionProcessCreated(currentReceptionProcess);
-
-    return currentReceptionProcess;
+    return this.notifySocketStateReceptionProcess(id);
   }
 
   async createMetric(createNotificationMetricDto: CreateNotificationMetricDto) {
@@ -115,8 +120,7 @@ export class ReceptionProcessService {
       reactionTimeSec,
       systemDelaySec,
       metadata,
-      eventRole,
-      statusProcess,
+      nextEvent,
     } = createNotificationMetricDto;
 
     const createdBy = await this.usersService.findOne(notifiedUserId);
@@ -127,7 +131,7 @@ export class ReceptionProcessService {
 
     const receptionProcess = await this.findOne(id);
 
-    const notificationMetricNew = await this.notificationMetricRepository.save({
+    await this.notificationMetricRepository.save({
       eventType,
       visibleAt,
       receptionProcess,
@@ -156,13 +160,10 @@ export class ReceptionProcessService {
       );
     }
 
-    if (
-      NotificationEventType.ACTION_CLICKED_CONFIRM &&
-      statusProcess &&
-      eventRole
-    ) {
+    if (NotificationEventType.ACTION_CLICKED_CONFIRM && nextEvent) {
+      const { event, statusProcess, eventRole } = nextEvent;
       await this.processEventRepository.save({
-        event: Event.CONFIRMA_NOTIFICACION,
+        event: ProcessEventOption[event],
         status: ProcessState[statusProcess],
         role: ProcessEventRole[eventRole],
         receptionProcess: {
@@ -174,18 +175,19 @@ export class ReceptionProcessService {
       });
     }
 
-    const currentReceptionProcess = await this.findOne(id);
-
-    // ✅ Emitir a tiempo real
-    this.sessionsGateway.emitReceptionProcessCreated(currentReceptionProcess);
-
-    return notificationMetricNew;
+    return this.notifySocketStateReceptionProcess(id);
   }
 
   findAll() {
     return this.receptionProcessRepository.find({
       where: { isActive: true },
       relations: this.relations,
+      order: {
+        createdAt: 'DESC',
+        events: {
+          id: 'ASC',
+        },
+      },
     });
   }
 
@@ -206,17 +208,63 @@ export class ReceptionProcessService {
         },
       },
       order: {
-        metrics: {
-          createdAt: 'ASC',
-        },
         events: {
-          createdAt: 'ASC',
+          id: 'ASC',
+        },
+        metrics: {
+          id: 'ASC',
         },
       },
     });
 
     if (!receptionProcess) {
       throw new NotFoundException(`ReceptionProcess with id ${id} not found`);
+    }
+
+    return receptionProcess;
+  }
+
+  async changeOfStatus(createChangeOfStatusDto: CreateChangeOfStatusDto) {
+    const { id, newState, nextEvent, actionRole } = createChangeOfStatusDto;
+
+    const createdBy = this.currentUser;
+
+    await this.findOne(id);
+
+    const { event, statusProcess, eventRole } = nextEvent;
+
+    let eventCreated: ProcessEvent;
+
+    switch (newState) {
+      case 'autorizada':
+        eventCreated = await this.processEventRepository.save({
+          event: ProcessEventOption[event],
+          status: ProcessState[statusProcess],
+          role: ProcessEventRole[eventRole],
+          receptionProcess: {
+            id,
+          },
+          createdBy,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        break;
+      default:
+        throw new NotFoundException(
+          `The new state ${newState} is not valid for change of status`,
+        );
+    }
+
+    const receptionProcess = await this.notifySocketStateReceptionProcess(id);
+
+    switch (actionRole) {
+      case 'logistica-autorizo-ingreso':
+        await this.pushNotificationsService.createPendingForTestingNotification(
+          receptionProcess,
+          eventCreated.createdBy,
+        );
+        break;
     }
 
     return receptionProcess;

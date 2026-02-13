@@ -8,7 +8,6 @@ import { In, Repository } from 'typeorm';
 import { type Request } from 'express';
 import * as webpush from 'web-push';
 
-import { ProcessEventRole, ProcessState } from '../reception-process/entities';
 import { User, UserRole } from '../users/entities/user.entity';
 import { Subscription } from './entities/subscription.entity';
 import * as vapidKeys from 'src/config/vapid-keys.json';
@@ -17,6 +16,11 @@ import {
   ReceptionProcess,
   ReceptionProcessTypeOfMaterial,
 } from '../reception-process/entities/reception-process.entity';
+import {
+  ProcessEventOption,
+  ProcessEventRole,
+  ProcessState,
+} from '../reception-process/entities';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
 webpush.setVapidDetails(
@@ -143,35 +147,87 @@ export class PushNotificationsService {
       usersIds = [expiredUser.id];
     }
 
-    const subscriptions = await this.subscriptionRepository.find({
-      where: {
-        user: {
-          id: In(usersIds),
-        },
-        isActive: true,
-      },
-      relations: ['user'],
-    });
+    const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
     const eventTime = new Date().toISOString();
 
     await Promise.all(
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
-          title: 'Llegada de pipa 🚛➡️🏭',
-          body: `
-            # Identificador: ${id} \n
-            Tipo de material: ${typeOfMaterial} \n
-            Creado por: ${createdBy.name}
-          `,
-          typeNotification: 'waiting',
-          tagId: `reception-process-${id}`,
-          eventTime,
+          title: `Ingreso de pipa #${id} 🚛➡️🏭`,
+          body: `Tipo de Material: ${typeOfMaterial}\nCreado por: ${createdBy.name}`,
           requireInteraction: true,
-          vibrate: [200],
+          image: 'img-ingreso-pipa.png',
           actions: [
             {
-              action: 'confirm-logistic',
+              action: 'confirm',
+              title: 'Confirmar',
+            },
+          ],
+          data: {
+            id,
+            eventTime,
+            notifiedUserId: subscription.user.id,
+            publicBackendUrl: this.publicBackendUrl,
+            appKey: this.appKey,
+            nextEvent: {
+              event: ProcessEventOption.LOGISTICA_CONFIRMA_PENDIENTE_DE_INGRESO,
+              statusProcess: ProcessState.LOGISTICA_PENDIENTE_DE_AUTORIZACION,
+              eventRole: ProcessEventRole.LOGISTICA,
+            },
+          },
+        }),
+      ),
+    );
+  }
+
+  async findSubscriptionsByUserIds(userIds: number[]) {
+    return this.subscriptionRepository.find({
+      where: {
+        user: {
+          id: In(userIds),
+        },
+        isActive: true,
+      },
+      relations: ['user'],
+    });
+  }
+
+  async createPendingForTestingNotification(
+    receptionProcess: ReceptionProcess,
+    createdBy: User,
+  ) {
+    const qualityUsers = await this.usersService.findAllByRole(
+      UserRole.CALIDAD,
+    );
+
+    console.log({ size: qualityUsers.length });
+
+    // usersIds = [createdBy.id, ...qualityUsers.map((user) => user.id)];
+    // usersIds = [...qualityUsers.map((user) => user.id)]; // Correcto
+    const usersIds = [receptionProcess.createdBy.id]; // TODO: Eliminar esto
+
+    const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
+
+    const eventTime = new Date().toISOString();
+
+    const { id, typeOfMaterial } = receptionProcess;
+
+    await Promise.all(
+      subscriptions.map((subscription) =>
+        this.sendNotification(subscription, {
+          title: 'Pendiente de evaluacion 🧪🔍',
+          body: `
+            # Identificador: ${id}\n
+            Tipo de material: ${typeOfMaterial}\n
+            Usuario que autorizó: ${createdBy.name}
+          `,
+          image: 'img-pending-test.png',
+          eventTime,
+          requireInteraction: true,
+          actions: [
+            {
+              action: 'confirm',
               title: 'Confirmar',
             },
           ],
@@ -180,8 +236,12 @@ export class PushNotificationsService {
             notifiedUserId: subscription.user.id,
             publicBackendUrl: this.publicBackendUrl,
             appKey: this.appKey,
-            eventRole: ProcessEventRole.LOGISTICA,
-            statusProcess: ProcessState.PENDIENTE_AUTORIZACION,
+            nextEvent: {
+              event: ProcessEventOption.CALIDAD_CONFIRMA_PENDIENTE_DE_ANALISIS,
+              statusProcess:
+                ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_DE_ANALISIS,
+              eventRole: ProcessEventRole.CALIDAD,
+            },
           },
         }),
       ),

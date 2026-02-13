@@ -8,12 +8,13 @@ import {
   Delete,
 } from '@nestjs/common';
 
+import { ReceptionProcessService } from './reception-process.service';
 import {
+  CreateChangeOfStatusDto,
   CreateNotificationMetricDto,
   CreateReceptionProcessDto,
   UpdateReceptionProcessDto,
 } from './dto';
-import { ReceptionProcessService } from './reception-process.service';
 
 @Controller('reception-process')
 export class ReceptionProcessController {
@@ -33,6 +34,11 @@ export class ReceptionProcessController {
     return this.receptionProcessService.createMetric(
       createNotificationMetricDto,
     );
+  }
+
+  @Post('change-of-status')
+  changeOfStatus(@Body() createChangeOfStatusDto: CreateChangeOfStatusDto) {
+    return this.receptionProcessService.changeOfStatus(createChangeOfStatusDto);
   }
 
   @Get()
