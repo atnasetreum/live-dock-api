@@ -108,7 +108,7 @@ export class ReceptionProcessService {
       receptionProcessId,
       createdBy,
       event: ProcessEventOption.VIGILANCIA_REGISTRA_INGRESO,
-      status: ProcessState.VIGILANCIA_REGISTRO_INGRESO,
+      status: ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_INGRESO,
       role: ProcessEventRole.VIGILANCIA,
     });
 
@@ -117,14 +117,128 @@ export class ReceptionProcessService {
     // Notifica la llegada de material
     await this.pushNotificationsService.notifiesOfArrival(receptionProcess);
 
-    // Registra nuevo evento
-    await this.createProcessEvent({
-      receptionProcessId,
-      createdBy,
-      event: ProcessEventOption.SISTEMA_CAMBIA_ESTATUS,
-      status: ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_INGRESO,
-      role: ProcessEventRole.SISTEMA,
-    });
+    // Notifica vía socket el cambio de estado
+    return this.notifySocketStateReceptionProcess(receptionProcessId);
+  }
+
+  async changeOfStatus(createChangeOfStatusDto: CreateChangeOfStatusDto) {
+    const { id: receptionProcessId, actionRole } = createChangeOfStatusDto;
+
+    const createdBy = this.currentUser;
+
+    const receptionProcess = await this.findOne(receptionProcessId);
+
+    switch (actionRole) {
+      case 'logistica-autorizo-ingreso':
+        // Registra nuevo evento
+        await this.createProcessEvent({
+          receptionProcessId,
+          createdBy,
+          event: ProcessEventOption.LOGISTICA_AUTORIZA_INGRESO,
+          status: ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_DE_ANALISIS,
+          role: ProcessEventRole.LOGISTICA,
+        });
+
+        // Notifica a calidad para que realice el análisis
+        await this.pushNotificationsService.notifyPendingTest(
+          receptionProcess,
+          createdBy,
+        );
+        break;
+      case 'calidad-aprobo-material':
+        // Registra nuevo evento
+        await this.createProcessEvent({
+          receptionProcessId,
+          createdBy,
+          event: ProcessEventOption.CALIDAD_APRUEBA_MATERIAL,
+          status:
+            ProcessState.PRODUCCION_PENDIENTE_DE_CONFIRMACION_PARA_DESCARGA,
+          role: ProcessEventRole.CALIDAD,
+        });
+
+        // Notifica qa produccion que el material esta pendiente de descargar
+        await this.pushNotificationsService.notifyPendingDownload(
+          receptionProcess,
+          createdBy,
+        );
+        break;
+      case 'calidad-rechazo-material':
+        // Registra nuevo evento
+        await this.createProcessEvent({
+          receptionProcessId,
+          createdBy,
+          event: ProcessEventOption.CALIDAD_RECHAZA_MATERIAL,
+          status: ProcessState.FINALIZO_PROCESO_POR_RECHAZO,
+          role: ProcessEventRole.CALIDAD,
+        });
+
+        // Notifica que calidad rechazó el material
+        await this.pushNotificationsService.notifyTestRejected(
+          receptionProcess,
+          createdBy,
+        );
+        break;
+      case 'produccion-descargando':
+        // Registra nuevo evento
+        await this.createProcessEvent({
+          receptionProcessId,
+          createdBy,
+          event: ProcessEventOption.PRODUCCION_INICIA_DESCARGA,
+          status: ProcessState.PRODUCCION_DESCARGANDO,
+          role: ProcessEventRole.PRODUCCION,
+        });
+        break;
+      case 'descargado':
+        // Registra nuevo evento
+        await this.createProcessEvent({
+          receptionProcessId,
+          createdBy,
+          event: ProcessEventOption.PRODUCCION_FINALIZA_DESCARGA,
+          status:
+            ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_CAPTURA_PESO_SAP,
+          role: ProcessEventRole.PRODUCCION,
+        });
+
+        // Notifica a logistica, pendiente de peso en sap
+        await this.pushNotificationsService.notifyPendingWeightInSAP(
+          receptionProcess,
+          createdBy,
+        );
+        break;
+      case 'logistica-capturo-peso-sap':
+        // Registra nuevo evento
+        await this.createProcessEvent({
+          receptionProcessId,
+          createdBy,
+          event: ProcessEventOption.LOGISTICA_CAPTURA_DE_PESO_EN_SAP,
+          status: ProcessState.CALIDAD_PENDIENTE_CONFIRMACION_LIBERACION_SAP,
+          role: ProcessEventRole.LOGISTICA,
+        });
+
+        // Notifica a calidad, pendiente de liberación en sap
+        await this.pushNotificationsService.notifyPendingReleaseInSAP(
+          receptionProcess,
+          createdBy,
+        );
+        break;
+      case 'calidad-libero-sap':
+        // Registra nuevo evento
+        await this.createProcessEvent({
+          receptionProcessId,
+          createdBy,
+          event: ProcessEventOption.CALIDAD_LIBERA_EN_SAP,
+          status: ProcessState.FINALIZO_PROCESO,
+          role: ProcessEventRole.CALIDAD,
+        });
+
+        // Notifica que el proceso finalizó correctamente
+        await this.pushNotificationsService.notifyProcessFinished(
+          receptionProcess,
+          createdBy,
+        );
+
+        break;
+    }
 
     // Notifica vía socket el cambio de estado
     return this.notifySocketStateReceptionProcess(receptionProcessId);
@@ -178,6 +292,34 @@ export class ReceptionProcessService {
             createdBy,
           );
           break;
+        case 'calidad_confirma_test':
+          // Notifica a calidad para que realice el análisis
+          await this.pushNotificationsService.notifyPendingTest(
+            receptionProcess,
+            createdBy,
+          );
+          break;
+        case 'produccion_confirma_descarga':
+          // Notifica a produccion que el material esta pendiente de descargar
+          await this.pushNotificationsService.notifyPendingDownload(
+            receptionProcess,
+            createdBy,
+          );
+          break;
+        case 'logistica_confirma_pendiente_peso_en_sap':
+          // Notifica a logistica, pendiente de peso en sap
+          await this.pushNotificationsService.notifyPendingWeightInSAP(
+            receptionProcess,
+            createdBy,
+          );
+          break;
+        case 'calidad_confima_liberacion_en_sap':
+          // Notifica a calidad, pendiente de liberación en sap
+          await this.pushNotificationsService.notifyPendingReleaseInSAP(
+            receptionProcess,
+            createdBy,
+          );
+          break;
       }
 
       return {
@@ -185,16 +327,57 @@ export class ReceptionProcessService {
       };
     }
 
-    if (NotificationEventType.ACTION_CLICKED_CONFIRM) {
+    if (eventType === NotificationEventType.ACTION_CLICKED_CONFIRM) {
       switch (actionConfirm) {
         case 'logistica_confirma_ingreso':
           // Registra nuevo evento
           await this.createProcessEvent({
             receptionProcessId,
             createdBy,
-            event: ProcessEventOption.LOGISTICA_AUTORIZA_INGRESO,
-            status: ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_DE_ANALISIS,
+            event: ProcessEventOption.LOGISTICA_CONFIRMA_PENDIENTE_DE_INGRESO,
+            status: ProcessState.LOGISTICA_PENDIENTE_DE_AUTORIZACION,
             role: ProcessEventRole.LOGISTICA,
+          });
+          break;
+        case 'calidad_confirma_test':
+          // Registra nuevo evento
+          await this.createProcessEvent({
+            receptionProcessId,
+            createdBy,
+            event: ProcessEventOption.CALIDAD_CONFIRMA_PENDIENTE_DE_ANALISIS,
+            status: ProcessState.CALIDAD_PROCESANDO,
+            role: ProcessEventRole.CALIDAD,
+          });
+          break;
+        case 'produccion_confirma_descarga':
+          // Registra nuevo evento
+          await this.createProcessEvent({
+            receptionProcessId,
+            createdBy,
+            event: ProcessEventOption.PRODUCCION_CONFIRMA_PENDIENTE_DE_DESCARGA,
+            status: ProcessState.PRODUCCION_PENDIENTE_DE_DESCARGA,
+            role: ProcessEventRole.PRODUCCION,
+          });
+          break;
+        case 'logistica_confirma_pendiente_peso_en_sap':
+          // Registra nuevo evento
+          await this.createProcessEvent({
+            receptionProcessId,
+            createdBy,
+            event: ProcessEventOption.LOGISTICA_CONFIRMA_CAPTURA_DE_PESO_EN_SAP,
+            status: ProcessState.LOGISTICA_PENDIENTE_DE_CAPTURA_PESO_SAP,
+            role: ProcessEventRole.LOGISTICA,
+          });
+          break;
+        case 'calidad_confima_liberacion_en_sap':
+          // Registra nuevo evento
+          await this.createProcessEvent({
+            receptionProcessId,
+            createdBy,
+            event:
+              ProcessEventOption.CALIDAD_CONFIRMA_PENDIENTE_DE_LIBERACION_EN_SAP,
+            status: ProcessState.CALIDAD_PENDIENTE_LIBERACION_EN_SAP,
+            role: ProcessEventRole.CALIDAD,
           });
           break;
       }
@@ -247,63 +430,6 @@ export class ReceptionProcessService {
     }
 
     return receptionProcess;
-  }
-
-  async changeOfStatus(createChangeOfStatusDto: CreateChangeOfStatusDto) {
-    const { id: receptionProcessId, actionRole } = createChangeOfStatusDto;
-
-    const createdBy = this.currentUser;
-
-    const receptionProcess = await this.findOne(receptionProcessId);
-
-    switch (actionRole) {
-      case 'logistica-autorizo-ingreso':
-        // Registra nuevo evento
-        await this.createProcessEvent({
-          receptionProcessId,
-          createdBy,
-          event: ProcessEventOption.LOGISTICA_AUTORIZA_INGRESO,
-          status: ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_DE_ANALISIS,
-          role: ProcessEventRole.LOGISTICA,
-        });
-
-        // Notifica a calidad para que realice el análisis
-        await this.pushNotificationsService.notifyPendingTest(
-          receptionProcess,
-          createdBy,
-        );
-        break;
-      case 'calidad-aprobo-material':
-        // Registra nuevo evento
-        await this.createProcessEvent({
-          receptionProcessId,
-          createdBy,
-          event: ProcessEventOption.CALIDAD_APRUEBA_MATERIAL,
-          status: ProcessState.CALIDAD_APROBO,
-          role: ProcessEventRole.CALIDAD,
-        });
-        // TODO: Este es el siguiente paso
-        break;
-      case 'calidad-rechazo-material':
-        // Registra nuevo evento
-        await this.createProcessEvent({
-          receptionProcessId,
-          createdBy,
-          event: ProcessEventOption.CALIDAD_RECHAZA_MATERIAL,
-          status: ProcessState.CALIDAD_RECHAZO,
-          role: ProcessEventRole.CALIDAD,
-        });
-
-        // Notifica que calidad rechazó el material
-        await this.pushNotificationsService.notifyTestRejected(
-          receptionProcess,
-          createdBy,
-        );
-        break;
-    }
-
-    // Notifica vía socket el cambio de estado
-    return this.notifySocketStateReceptionProcess(receptionProcessId);
   }
 
   update(id: number, updateReceptionProcessDto: UpdateReceptionProcessDto) {

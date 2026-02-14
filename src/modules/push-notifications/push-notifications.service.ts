@@ -58,6 +58,20 @@ export class PushNotificationsService {
     })();
   }
 
+  get productionUserIds(): Promise<number[]> {
+    return (async () => {
+      const users = await this.usersService.findAllByRole(UserRole.PRODUCCION);
+      return users.map((user) => user.id);
+    })();
+  }
+
+  get vigilanceUserIds(): Promise<number[]> {
+    return (async () => {
+      const users = await this.usersService.findAllByRole(UserRole.VIGILANCIA);
+      return users.map((user) => user.id);
+    })();
+  }
+
   get eventTime() {
     return new Date().toISOString();
   }
@@ -183,6 +197,7 @@ export class PushNotificationsService {
             },
           ],
           tagId: `ingreso-pipa-${receptionProcessId}`,
+          requireInteraction: true,
           data: {
             id: receptionProcessId,
             eventTime: this.eventTime,
@@ -198,7 +213,7 @@ export class PushNotificationsService {
 
   async notifyPendingTest(receptionProcess: ReceptionProcess, createdBy: User) {
     // usersIds = [...this.qualityUserIds]; // Correcto
-    const usersIds = [receptionProcess.createdBy.id]; // TODO: Eliminar esto
+    const usersIds = [createdBy.id]; // TODO: Eliminar esto
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
@@ -221,6 +236,9 @@ export class PushNotificationsService {
               icon: `${this.ROOT_IMG_FOLDER}/confirm-icon.webp`,
             },
           ],
+
+          tagId: `pending-test-${receptionProcessId}`,
+          requireInteraction: true,
           data: {
             id: receptionProcessId,
             eventTime,
@@ -238,7 +256,10 @@ export class PushNotificationsService {
     receptionProcess: ReceptionProcess,
     createdBy: User,
   ) {
-    // usersIds = [...this.qualityUserIds, ...this.logisticsUserIds]; // Correcto
+    //const qualityUserIds = await this.qualityUserIds;
+    //const logisticsUserIds = await this.logisticsUserIds;
+    //const vigilanceUserIds = await this.vigilanceUserIds;
+    // usersIds = [...qualityUserIds, ...logisticsUserIds, ...vigilanceUserIds]; // Correcto
     const usersIds = [receptionProcess.createdBy.id]; // TODO: Eliminar esto
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
@@ -253,6 +274,174 @@ export class PushNotificationsService {
           title: `Rechazado por calidad #${receptionProcessId} ❌🧪`,
           body: `Tipo de material: ${typeOfMaterial}\nUsuario que rechazo: ${createdBy.name}`,
           image: 'image-rejected.png',
+          data: {
+            id: receptionProcessId,
+            eventTime,
+            notifiedUserId: subscription.user.id,
+            publicBackendUrl: this.publicBackendUrl,
+            appKey: this.appKey,
+          },
+        }),
+      ),
+    );
+  }
+
+  async notifyPendingDownload(
+    receptionProcess: ReceptionProcess,
+    createdBy: User,
+  ) {
+    // const usersIds = [...this.productionUserIds]; // Correcto
+    const usersIds = [createdBy.id]; // TODO: Eliminar esto
+
+    const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
+
+    const eventTime = new Date().toISOString();
+
+    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+
+    const actionConfirm = 'produccion_confirma_descarga';
+
+    await Promise.all(
+      subscriptions.map((subscription) =>
+        this.sendNotification(subscription, {
+          title: `Pendiente de descarga #${receptionProcessId} 📦⬇️`,
+          body: `Tipo de material: ${typeOfMaterial}\nUsuario que autorizó: ${createdBy.name}`,
+          image: 'img-pending-download.png',
+          actions: [
+            {
+              action: 'confirm',
+              title: 'Confirmar',
+              icon: `${this.ROOT_IMG_FOLDER}/confirm-icon.webp`,
+            },
+          ],
+
+          tagId: `pending-download-${receptionProcessId}`,
+          requireInteraction: true,
+          data: {
+            id: receptionProcessId,
+            eventTime,
+            notifiedUserId: subscription.user.id,
+            publicBackendUrl: this.publicBackendUrl,
+            appKey: this.appKey,
+            actionConfirm,
+          },
+        }),
+      ),
+    );
+  }
+
+  async notifyPendingWeightInSAP(
+    receptionProcess: ReceptionProcess,
+    createdBy: User,
+  ) {
+    // const usersIds = [...this.logisticsUserIds]; // Correcto
+    const usersIds = [createdBy.id]; // TODO: Eliminar esto
+
+    const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
+
+    const eventTime = new Date().toISOString();
+
+    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+
+    const actionConfirm = 'logistica_confirma_pendiente_peso_en_sap';
+
+    await Promise.all(
+      subscriptions.map((subscription) =>
+        this.sendNotification(subscription, {
+          title: `Pendiente de peso en SAP #${receptionProcessId} ⚖️📦`,
+          body: `Tipo de material: ${typeOfMaterial}\nUsuario que autorizó: ${createdBy.name}`,
+          image: 'img-pending-weight.png',
+          actions: [
+            {
+              action: 'confirm',
+              title: 'Confirmar',
+              icon: `${this.ROOT_IMG_FOLDER}/confirm-icon.webp`,
+            },
+          ],
+
+          tagId: `pending-weight-${receptionProcessId}`,
+          requireInteraction: true,
+          data: {
+            id: receptionProcessId,
+            eventTime,
+            notifiedUserId: subscription.user.id,
+            publicBackendUrl: this.publicBackendUrl,
+            appKey: this.appKey,
+            actionConfirm,
+          },
+        }),
+      ),
+    );
+  }
+
+  async notifyPendingReleaseInSAP(
+    receptionProcess: ReceptionProcess,
+    createdBy: User,
+  ) {
+    // const usersIds = [...this.qualityUserIds]; // Correcto
+    const usersIds = [createdBy.id]; // TODO: Eliminar esto
+
+    const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
+
+    const eventTime = new Date().toISOString();
+
+    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+
+    const actionConfirm = 'calidad_confima_liberacion_en_sap';
+
+    await Promise.all(
+      subscriptions.map((subscription) =>
+        this.sendNotification(subscription, {
+          title: `Pendiente de liberación en SAP #${receptionProcessId} ⚖️📦`,
+          body: `Tipo de material: ${typeOfMaterial}\nUsuario que autorizó: ${createdBy.name}`,
+          image: 'img-pending-release.png',
+          actions: [
+            {
+              action: 'confirm',
+              title: 'Confirmar',
+              icon: `${this.ROOT_IMG_FOLDER}/confirm-icon.webp`,
+            },
+          ],
+
+          tagId: `pending-release-${receptionProcessId}`,
+          requireInteraction: true,
+          data: {
+            id: receptionProcessId,
+            eventTime,
+            notifiedUserId: subscription.user.id,
+            publicBackendUrl: this.publicBackendUrl,
+            appKey: this.appKey,
+            actionConfirm,
+          },
+        }),
+      ),
+    );
+  }
+
+  async notifyProcessFinished(
+    receptionProcess: ReceptionProcess,
+    createdBy: User,
+  ) {
+    /* const logisticsUserIds = await this.logisticsUserIds;
+    const qualityUserIds = await this.qualityUserIds;
+    const vigilanceUserIds = await this.vigilanceUserIds;
+    const productionUserIds = await this.productionUserIds; */
+    //const usersIds = [...logisticsUserIds, ...qualityUserIds, ...vigilanceUserIds, ...productionUserIds]; // Correcto
+    const usersIds = [createdBy.id]; // TODO: Eliminar esto
+
+    const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
+
+    const eventTime = new Date().toISOString();
+
+    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+
+    await Promise.all(
+      subscriptions.map((subscription) =>
+        this.sendNotification(subscription, {
+          title: `Proceso finalizado #${receptionProcessId} ✅🎉`,
+          body: `Tipo de material: ${typeOfMaterial}\nUsuario que autorizó: ${createdBy.name}`,
+          image: 'img-process-finished.png',
+          tagId: `process-finished-${receptionProcessId}`,
           data: {
             id: receptionProcessId,
             eventTime,
