@@ -117,8 +117,6 @@ export class UsersService {
       UserRole.LOGISTICA,
       UserRole.CALIDAD,
       UserRole.PRODUCCION,
-      UserRole.ADMIN,
-      UserRole.GENERAL,
     ]) {
       const email = `user-${role.toLocaleLowerCase()}@example.com`;
 

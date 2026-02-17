@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -11,6 +12,7 @@ import {
 import { NotificationMetric } from './notification-metric.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { ProcessEvent } from './process-events.entity';
+import { PriorityAlert } from './priority-alert.entity';
 
 export enum ReceptionProcessStatus {
   EN_PROGRESO = 'EN_PROGRESO',
@@ -25,6 +27,11 @@ export enum ReceptionProcessTypeOfMaterial {
   COLGATE = 'COLGATE',
 }
 
+@Index(['status', 'createdAt']) // 1. Filtros por estado y fecha
+@Index(['typeOfMaterial', 'createdAt']) // 2. Distribución de materiales
+@Index(['createdBy', 'status']) // 3. Procesos por usuario
+@Index(['isActive', 'status']) // 4. Procesos activos
+@Index(['createdAt']) // 5. Ordenamiento temporal
 @Entity({
   name: 'reception_processes',
 })
@@ -52,7 +59,9 @@ export class ReceptionProcess {
   @ManyToOne(() => User, (user) => user.createdByReceptionProcesses)
   createdBy: User;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({
+    name: 'created_at',
+  })
   createdAt: Date;
 
   @UpdateDateColumn({
@@ -71,4 +80,10 @@ export class ReceptionProcess {
     (notificationMetric) => notificationMetric.receptionProcess,
   )
   metrics: NotificationMetric[];
+
+  @OneToMany(
+    () => PriorityAlert,
+    (priorityAlert) => priorityAlert.receptionProcess,
+  )
+  priorityAlerts: PriorityAlert[];
 }

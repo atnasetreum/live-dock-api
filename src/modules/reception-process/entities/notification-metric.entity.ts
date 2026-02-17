@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -18,6 +19,12 @@ export enum NotificationEventType {
   EXPIRED = 'EXPIRED',
 }
 
+// Índices compuestos para consultas comunes
+@Index(['eventType', 'createdAt']) // Ya existente - para consultas por tipo y fecha
+@Index(['eventType', 'reactionTimeSec']) // Nuevo - para promedios por evento
+@Index(['createdAt']) // Nuevo - para filtros por fecha
+@Index(['reactionTimeSec']) // Nuevo - para filtros y agregaciones de tiempo
+@Index(['createdBy', 'eventType']) // Nuevo - para consultas por usuario y evento
 @Entity({
   name: 'notification_metrics',
 })
@@ -46,6 +53,9 @@ export class NotificationMetric {
 
   @Column('jsonb', { nullable: true })
   metadata: Record<string, any>;
+
+  @Column({ default: true, name: 'is_active' })
+  isActive: boolean;
 
   @ManyToOne(() => User, (user) => user.createdByNotificationMetrics)
   createdBy: User;

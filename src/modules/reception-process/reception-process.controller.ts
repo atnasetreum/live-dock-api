@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 
 import { ReceptionProcessService } from './reception-process.service';
@@ -42,8 +43,13 @@ export class ReceptionProcessController {
   }
 
   @Get()
-  findAll() {
-    return this.receptionProcessService.findAll();
+  findAll(@Query('startDate') startDate?: string) {
+    return this.receptionProcessService.findAll({ startDate });
+  }
+
+  @Get('priority-alerts')
+  findPriorityAlerts(@Query('startDate') startDate?: string) {
+    return this.receptionProcessService.findPriorityAlerts(startDate);
   }
 
   @Get(':id')

@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -54,9 +55,14 @@ export enum ProcessEventRole {
   LOGISTICA = 'LOGISTICA',
   CALIDAD = 'CALIDAD',
   PRODUCCION = 'PRODUCCION',
-  SISTEMA = 'SISTEMA',
 }
 
+@Index(['receptionProcess', 'createdAt']) // 1. ⭐ Timeline (CRÍTICO)
+@Index(['role', 'status']) // 2. Dashboard por rol
+@Index(['createdBy', 'createdAt']) // 3. Auditoría usuario
+@Index(['status', 'createdAt']) // 4. Análisis estados
+@Index(['event', 'createdAt']) // 5. Análisis eventos
+@Index(['createdAt']) // 6. Ordenamiento general
 @Entity({
   name: 'process_events',
 })

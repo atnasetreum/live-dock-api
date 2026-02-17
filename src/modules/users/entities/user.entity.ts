@@ -14,6 +14,7 @@ import {
   ProcessEvent,
   NotificationMetric,
   ReceptionProcess,
+  PriorityAlert,
 } from 'src/modules/reception-process/entities';
 
 export enum UserRole {
@@ -21,8 +22,7 @@ export enum UserRole {
   LOGISTICA = 'LOGISTICA',
   CALIDAD = 'CALIDAD',
   PRODUCCION = 'PRODUCCION',
-  ADMIN = 'ADMIN',
-  GENERAL = 'GENERAL',
+  SISTEMA = 'SISTEMA',
 }
 
 @Entity('users')
@@ -30,13 +30,15 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({
+    length: 100,
+  })
   name: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, length: 255 })
   email: string;
 
-  @Column({ select: false })
+  @Column({ select: false, length: 255 })
   password: string;
 
   @Column({
@@ -75,6 +77,9 @@ export class User {
     (receptionProcess) => receptionProcess.createdBy,
   )
   createdByReceptionProcesses: ReceptionProcess[];
+
+  @OneToMany(() => PriorityAlert, (priorityAlert) => priorityAlert.createdBy)
+  priorityAlerts: PriorityAlert[];
 
   @BeforeInsert()
   async hashPassword() {

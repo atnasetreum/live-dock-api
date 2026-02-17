@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
+  SubscribeMessage,
   //SubscribeMessage,
   WebSocketGateway,
   //WebSocketServer,
@@ -11,10 +12,10 @@ import {
 import { Socket } from 'socket.io';
 
 import { SessionMetadata, SessionsService } from './sessions.service';
+import { ReceptionProcess } from '../reception-process/entities';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
 import { JwtService } from 'src/auth';
-import { ReceptionProcess } from '../reception-process/entities';
 
 @WebSocketGateway({
   namespace: 'sessions',
@@ -203,9 +204,23 @@ export class SessionsGateway
     this.emitAllUsers('reception-process:created', receptionProcess);
   }
 
-  /* @SubscribeMessage('sessions:new_user_connected')
-  async handleNewUserConnected(): Promise<void> {
-    const users = await this.currentUsers;
-    this.emitAllUsers('sessions:users_connected', { users });
-  } */
+  emitEventToRoles(
+    event: string,
+    data: {
+      title: string;
+      detail: string;
+      severity: 'Alta' | 'Media' | 'Baja';
+    },
+    userIds: number[],
+  ): void {
+    userIds.forEach((userId) => {
+      console.log({ event });
+      this.sessionsService.emitToUser(userId, event, data);
+    });
+  }
+
+  @SubscribeMessage('sessions:get_current_users')
+  async handleGetCurrentUsers(): Promise<void> {
+    await this.updateCurrentUsers();
+  }
 }
