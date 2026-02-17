@@ -196,12 +196,12 @@ export class SessionsGateway
     client.emit('sessions:current_user', user);
   }
 
-  emitReceptionProcessCreated(receptionProcess: ReceptionProcess): void {
+  emitStatusReceptionProcess(receptionProcess: ReceptionProcess): void {
     this.logger.debug(
-      `Emitting reception process created event for process ${receptionProcess.id}`,
+      `Emitting status update for reception process ${receptionProcess.id}`,
     );
 
-    this.emitAllUsers('reception-process:created', receptionProcess);
+    this.emitAllUsers('reception-process:status_update', receptionProcess);
   }
 
   emitEventToRoles(

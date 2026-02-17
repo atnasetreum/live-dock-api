@@ -53,6 +53,9 @@ export class ReceptionProcess {
   })
   typeOfMaterial: ReceptionProcessTypeOfMaterial;
 
+  @Column({ name: 'processing_time_minutes', nullable: true })
+  processingTimeMinutes: number;
+
   @Column({ default: true, name: 'is_active' })
   isActive: boolean;
 

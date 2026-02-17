@@ -62,7 +62,7 @@ export class ReceptionProcessService {
     const receptionProcess = await this.findOne(id);
 
     // ✅ Emitir a tiempo real
-    this.sessionsGateway.emitReceptionProcessCreated(receptionProcess);
+    this.sessionsGateway.emitStatusReceptionProcess(receptionProcess);
 
     return receptionProcess;
   }
@@ -220,6 +220,20 @@ export class ReceptionProcessService {
     return this.notifySocketStateReceptionProcess(receptionProcessId);
   }
 
+  async endReceptionProcess(
+    receptionProcess: ReceptionProcess,
+    status:
+      | ReceptionProcessStatus.FINALIZADO
+      | ReceptionProcessStatus.RECHAZADO,
+  ) {
+    await this.update(receptionProcess.id, {
+      status,
+      processingTimeMinutes: Math.round(
+        (new Date().getTime() - receptionProcess.createdAt.getTime()) / 60000,
+      ),
+    });
+  }
+
   async changeOfStatus(createChangeOfStatusDto: CreateChangeOfStatusDto) {
     const { id: receptionProcessId, actionRole } = createChangeOfStatusDto;
 
@@ -310,9 +324,11 @@ export class ReceptionProcessService {
           },
         );
 
-        await this.update(receptionProcessId, {
-          status: ReceptionProcessStatus.RECHAZADO,
-        });
+        // Actualiza estado a finalizado y calcula tiempo de proceso
+        await this.endReceptionProcess(
+          receptionProcess,
+          ReceptionProcessStatus.RECHAZADO,
+        );
 
         break;
       case 'produccion-descargando':
@@ -384,9 +400,11 @@ export class ReceptionProcessService {
           role: ProcessEventRole.CALIDAD,
         });
 
-        await this.update(receptionProcessId, {
-          status: ReceptionProcessStatus.FINALIZADO,
-        });
+        // Actualiza estado a finalizado y calcula tiempo de proceso
+        await this.endReceptionProcess(
+          receptionProcess,
+          ReceptionProcessStatus.FINALIZADO,
+        );
 
         // Notifica que el proceso finalizó correctamente
         await this.pushNotificationsService.notifyProcessFinished(
@@ -452,11 +470,15 @@ export class ReceptionProcessService {
       updatedAt: new Date(),
     });
 
+    const lastEvent =
+      receptionProcess.events[receptionProcess.events.length - 1].event;
+
     if (
       [
         NotificationEventType.EXPIRED,
         NotificationEventType.NOTIFICATION_CLICKED_NOT_ACTION,
-      ].includes(eventType)
+      ].includes(eventType) &&
+      !lastEvent.includes('CONFIRMA')
     ) {
       switch (actionConfirm) {
         case 'logistica_confirma_ingreso':
@@ -501,9 +523,17 @@ export class ReceptionProcessService {
       };
     }
 
+    const lastStatus =
+      receptionProcess.events[receptionProcess.events.length - 1].status;
+
     if (eventType === NotificationEventType.ACTION_CLICKED_CONFIRM) {
       switch (actionConfirm) {
         case 'logistica_confirma_ingreso':
+          if (lastStatus === ProcessState.LOGISTICA_PENDIENTE_DE_AUTORIZACION) {
+            return {
+              message: `No action taken because the process is still pending authorization by logistics`,
+            };
+          }
           // Registra nuevo evento
           await this.createProcessEvent({
             receptionProcessId,
@@ -514,6 +544,12 @@ export class ReceptionProcessService {
           });
           break;
         case 'calidad_confirma_test':
+          if (lastStatus === ProcessState.CALIDAD_PROCESANDO) {
+            return {
+              message: `No action taken because the process is still pending analysis confirmation by quality`,
+            };
+          }
+
           // Registra nuevo evento
           await this.createProcessEvent({
             receptionProcessId,
@@ -524,6 +560,12 @@ export class ReceptionProcessService {
           });
           break;
         case 'produccion_confirma_descarga':
+          if (lastStatus === ProcessState.PRODUCCION_PENDIENTE_DE_DESCARGA) {
+            return {
+              message: `No action taken because the process is still pending download confirmation by production`,
+            };
+          }
+
           // Registra nuevo evento
           await this.createProcessEvent({
             receptionProcessId,
@@ -534,6 +576,14 @@ export class ReceptionProcessService {
           });
           break;
         case 'logistica_confirma_pendiente_peso_en_sap':
+          if (
+            lastStatus === ProcessState.LOGISTICA_PENDIENTE_DE_CAPTURA_PESO_SAP
+          ) {
+            return {
+              message: `No action taken because the process is still pending weight capture confirmation in SAP by logistics`,
+            };
+          }
+
           // Registra nuevo evento
           await this.createProcessEvent({
             receptionProcessId,
@@ -544,6 +594,12 @@ export class ReceptionProcessService {
           });
           break;
         case 'calidad_confima_liberacion_en_sap':
+          if (lastStatus === ProcessState.CALIDAD_PENDIENTE_LIBERACION_EN_SAP) {
+            return {
+              message: `No action taken because the process is still pending release confirmation in SAP by quality`,
+            };
+          }
+
           // Registra nuevo evento
           await this.createProcessEvent({
             receptionProcessId,
@@ -615,11 +671,13 @@ export class ReceptionProcessService {
   ) {
     await this.findOne(id);
 
-    const { status, ...rest } = updateReceptionProcessDto;
+    const { status, processingTimeMinutes, ...rest } =
+      updateReceptionProcessDto;
 
     await this.receptionProcessRepository.update(id, {
       ...rest,
       ...(status && { status }),
+      ...(processingTimeMinutes && { processingTimeMinutes }),
       updatedAt: new Date(),
     });
 
