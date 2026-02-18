@@ -8,7 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { REQUEST } from '@nestjs/core';
 
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 
 import { PushNotificationsService } from '../push-notifications/push-notifications.service';
 import { SessionsGateway } from '../sessions/sessions.gateway';
@@ -150,7 +150,10 @@ export class ReceptionProcessService {
       where: {
         isActive: true,
         role,
-        ...(startDate && { createdAt: MoreThanOrEqual(new Date(startDate)) }),
+        createdAt: Between(
+          new Date(`${startDate}T00:00:00`),
+          new Date(`${startDate}T23:59:59`),
+        ),
       },
       order: {
         createdAt: 'DESC',
@@ -210,8 +213,6 @@ export class ReceptionProcessService {
         receptionProcess.events[receptionProcess.events.length - 1]?.status ||
         '';
 
-      console.log({ event, lastStatus });
-
       if (lastStatus === status) {
         throw new ConflictException(
           `The reception process is already in status ${status}`,
@@ -251,6 +252,10 @@ export class ReceptionProcessService {
       },
       createdBy,
       createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await this.receptionProcessRepository.update(receptionProcessId, {
       updatedAt: new Date(),
     });
 
@@ -697,7 +702,12 @@ export class ReceptionProcessService {
     return this.receptionProcessRepository.find({
       where: {
         isActive: true,
-        ...(startDate && { createdAt: MoreThanOrEqual(new Date(startDate)) }),
+        ...(startDate && {
+          createdAt: Between(
+            new Date(`${startDate}T00:00:00`),
+            new Date(`${startDate}T23:59:59`),
+          ),
+        }),
       },
       relations: this.relations,
       order: {

@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 
 import { type Request } from 'express';
+import * as CryptoJS from 'crypto-js';
 import { Repository } from 'typeorm';
 import { serialize } from 'cookie';
 import * as argon2 from 'argon2';
@@ -25,6 +26,7 @@ import { JwtService } from './jwt.service';
 export class AuthService {
   nameCookie: string;
   environment: string;
+  appKey: string;
 
   private readonly logger = new Logger(AuthService.name);
 
@@ -36,6 +38,7 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {
     this.environment = this.configService.get<string>('environment')!;
+    this.appKey = this.configService.get<string>('appKey')!;
     this.nameCookie = 'token';
   }
 
@@ -51,7 +54,16 @@ export class AuthService {
   }
 
   async login(loginAuthDto: LoginAuthDto): Promise<string> {
-    const { email, password } = loginAuthDto;
+    const { email: emailEncrypted, password: passwordEncrypted } = loginAuthDto;
+
+    const email = CryptoJS.AES.decrypt(emailEncrypted, this.appKey).toString(
+      CryptoJS.enc.Utf8,
+    );
+
+    const password = CryptoJS.AES.decrypt(
+      passwordEncrypted,
+      this.appKey,
+    ).toString(CryptoJS.enc.Utf8);
 
     const user = await this.userRepository.findOne({
       where: {
