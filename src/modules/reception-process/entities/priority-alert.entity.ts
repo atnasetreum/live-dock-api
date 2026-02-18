@@ -23,6 +23,7 @@ export enum PriorityAlertRole {
   CALIDAD = 'CALIDAD',
   PRODUCCION = 'PRODUCCION',
   SISTEMA = 'SISTEMA',
+  ADMIN = 'ADMIN',
 }
 
 @Index(['severity', 'isActive', 'createdAt']) // 1. ⭐ Dashboard crítico

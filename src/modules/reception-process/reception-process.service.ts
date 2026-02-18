@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { REQUEST } from '@nestjs/core';
 
@@ -165,6 +171,77 @@ export class ReceptionProcessService {
     status: ProcessState;
     role: ProcessEventRole;
   }) {
+    if (event !== ProcessEventOption.VIGILANCIA_REGISTRA_INGRESO) {
+      const receptionProcess = await this.findOne(receptionProcessId);
+
+      const orderedSteps = {
+        1: ProcessEventOption.LOGISTICA_CONFIRMA_PENDIENTE_DE_INGRESO,
+        2: ProcessEventOption.LOGISTICA_AUTORIZA_INGRESO,
+        3: ProcessEventOption.CALIDAD_CONFIRMA_PENDIENTE_DE_ANALISIS,
+        4: ProcessEventOption.CALIDAD_RECHAZA_MATERIAL,
+        5: ProcessEventOption.CALIDAD_APRUEBA_MATERIAL,
+        6: ProcessEventOption.PRODUCCION_CONFIRMA_PENDIENTE_DE_DESCARGA,
+        7: ProcessEventOption.PRODUCCION_INICIA_DESCARGA,
+        8: ProcessEventOption.PRODUCCION_FINALIZA_DESCARGA,
+        9: ProcessEventOption.LOGISTICA_CONFIRMA_CAPTURA_DE_PESO_EN_SAP,
+        10: ProcessEventOption.LOGISTICA_CAPTURA_DE_PESO_EN_SAP,
+        11: ProcessEventOption.CALIDAD_CONFIRMA_PENDIENTE_DE_LIBERACION_EN_SAP,
+        12: ProcessEventOption.CALIDAD_LIBERA_EN_SAP,
+      };
+
+      if (event === ProcessEventOption.CALIDAD_APRUEBA_MATERIAL) {
+        // Se elimina el paso 4, Reordenar las claves para que no haya saltos
+        const reorderedSteps: Record<number, ProcessEventOption> = {};
+        let index = 1;
+        for (const key in orderedSteps) {
+          if (
+            key !== '4' &&
+            orderedSteps[key] !== ProcessEventOption.CALIDAD_RECHAZA_MATERIAL
+          ) {
+            reorderedSteps[index] = orderedSteps[key] as ProcessEventOption;
+            index++;
+          }
+        }
+
+        Object.assign(orderedSteps, reorderedSteps);
+      }
+
+      const lastStatus =
+        receptionProcess.events[receptionProcess.events.length - 1]?.status ||
+        '';
+
+      console.log({ event, lastStatus });
+
+      if (lastStatus === status) {
+        throw new ConflictException(
+          `The reception process is already in status ${status}`,
+        );
+      }
+
+      // Validación de flujo correcto de eventos
+      const lastEvent =
+        receptionProcess.events[receptionProcess.events.length - 1]?.event ||
+        '';
+
+      if (event !== orderedSteps[Object.keys(orderedSteps).length]) {
+        const currentKeyIndex = Object.keys(orderedSteps).find(
+          (key) => orderedSteps[key] === lastEvent,
+        );
+
+        if (currentKeyIndex !== undefined) {
+          const expectedEvent = orderedSteps[Number(currentKeyIndex) + 1] as
+            | ProcessEventOption
+            | undefined;
+
+          if (expectedEvent && event !== expectedEvent) {
+            throw new ConflictException(
+              `The next event should be ${expectedEvent} after ${lastEvent}`,
+            );
+          }
+        }
+      }
+    }
+
     const processEvent = await this.processEventRepository.save({
       event,
       status,

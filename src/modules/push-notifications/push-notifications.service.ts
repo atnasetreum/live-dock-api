@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { REQUEST } from '@nestjs/core';
@@ -118,6 +118,33 @@ export class PushNotificationsService {
   findPublicKey() {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     return (URLSafeBase64 as any).decode(vapidKeys.publicKey) as Buffer;
+  }
+
+  async testAll(userId?: number) {
+    const subscriptions = await this.subscriptionRepository.find({
+      where: { isActive: true, ...(userId && { user: { id: userId } }) },
+    });
+
+    if (!subscriptions.length) {
+      this.logger.warn('No active subscriptions found');
+      throw new NotFoundException('No active subscriptions found');
+    }
+
+    await Promise.all(
+      subscriptions.map((subscription) =>
+        this.sendNotification(subscription, {
+          title: 'Test Notification',
+          body: 'Esto es una notificación de prueba para verificar que las notificaciones push funcionan correctamente.',
+          tagId: `test-notification-${new Date().getTime()}`,
+          data: {
+            isTest: true,
+            eventTime: this.eventTime,
+          },
+        }),
+      ),
+    );
+
+    return { message: 'Test notifications sent' };
   }
 
   async testPushNotification(body: Record<string, unknown>) {

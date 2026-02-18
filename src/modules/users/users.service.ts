@@ -89,37 +89,19 @@ export class UsersService {
   }
 
   async seed() {
-    /* const email = 'eduardo-266@hotmail.com';
-
-    const userExists = await this.userRepository.findOne({
-      where: { email },
-    });
-
-    if (userExists) {
-      throw new ConflictException('User with this email (seed) already exists');
-    }
-
-    const user = {
-      name: 'Eduardo Domínguez',
-      password: await argon2.hash('123'),
-      email,
-      role: UserRole.ADMIN,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    await this.userRepository.upsert(user, ['email']);
-
-    return { message: 'Seed completed' }; */
-
     for (const role of [
       UserRole.VIGILANCIA,
       UserRole.LOGISTICA,
       UserRole.CALIDAD,
       UserRole.PRODUCCION,
       UserRole.SISTEMA,
+      UserRole.ADMIN,
     ]) {
-      const email = `user-${role.toLocaleLowerCase()}@example.com`;
+      let email = `user-${role.toLocaleLowerCase()}@example.com`;
+
+      if (role === UserRole.ADMIN) {
+        email = 'eduardo-266@hotmail.com';
+      }
 
       const userExists = await this.userRepository.findOne({
         where: { email },

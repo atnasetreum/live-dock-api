@@ -5,6 +5,7 @@ import {
   Req,
   BadRequestException,
   Body,
+  Query,
 } from '@nestjs/common';
 
 import { type Request } from 'express';
@@ -46,6 +47,11 @@ export class PushNotificationsController {
   @Get('/public-key')
   findPublicKey() {
     return this.pushNotificationsService.findPublicKey();
+  }
+
+  @Get('/test-all')
+  testAll(@Query('userId') userId: string) {
+    return this.pushNotificationsService.testAll(+userId);
   }
 
   @Post('/test-push')

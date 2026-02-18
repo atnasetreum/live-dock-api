@@ -23,6 +23,7 @@ export enum UserRole {
   CALIDAD = 'CALIDAD',
   PRODUCCION = 'PRODUCCION',
   SISTEMA = 'SISTEMA',
+  ADMIN = 'ADMIN',
 }
 
 @Entity('users')
