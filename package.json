@@ -18,7 +18,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "generate-vapid-keys": "./node_modules/web-push/src/cli.js generate-vapid-keys --json > ./src/config/vapid-keys.json"
+    "generate-vapid-keys": "npx web-push generate-vapid-keys --json > ./src/config/vapid-keys.json"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
