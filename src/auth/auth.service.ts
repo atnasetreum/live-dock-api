@@ -49,7 +49,9 @@ export class AuthService {
       sameSite: this.environment === ENV_PRODUCTION ? 'none' : 'strict',
       path: '/',
       domain:
-        this.environment === ENV_PRODUCTION ? 'comportarte.com' : 'localhost',
+        this.environment === ENV_PRODUCTION
+          ? 'mesadecontrolct.com'
+          : 'localhost',
     } as StringifyOptions;
   }
 
