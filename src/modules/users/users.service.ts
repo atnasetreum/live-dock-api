@@ -123,6 +123,91 @@ export class UsersService {
       await this.userRepository.upsert(user, ['email']);
     }
 
+    const users = [
+      {
+        name: 'Ernesto Zuppa',
+        password: '#Zuppa01',
+        email: 'ezuppa@hadamexico.com',
+        role: 'PRODUCCION',
+      },
+      {
+        name: 'Luciano Vargas',
+        password: '#Vargas01',
+        email: 'lvargas@hadamexico.com',
+        role: 'PRODUCCION',
+      },
+      {
+        name: 'Renato Rodriguez',
+        password: '#Renato01',
+        email: 'rrodriguez@hadamexico.com',
+        role: 'PRODUCCION',
+      },
+      {
+        name: 'Alejandro Medina',
+        password: '#Medina01',
+        email: 'amedina@hadamexico.com',
+        role: 'CALIDAD',
+      },
+      {
+        name: 'Claudia Lopez',
+        password: '#Claudia01',
+        email: 'clopez@hadamexico.com',
+        role: 'CALIDAD',
+      },
+      {
+        name: 'Vigilancia',
+        password: '#Vigilancia01',
+        email: 'vigilancia2@hadamexico.com',
+        role: 'CALIDAD',
+      },
+      {
+        name: 'Ernesto Ruíz',
+        password: '#Ruiz01',
+        email: 'eruiz@hadamexico.com',
+        role: 'LOGISTICA',
+      },
+      {
+        name: 'Oscar Lopez',
+        password: '#Oscar01',
+        email: 'galmmex2@hadamexico.com',
+        role: 'LOGISTICA',
+      },
+      {
+        name: 'Carlos Gutierrez',
+        password: '#Carlos01',
+        email: 'cgutierrez@hadamexico.com',
+        role: 'LOGISTICA',
+      },
+      {
+        name: 'Luis Reyes',
+        password: '#Reyes01',
+        email: 'sistemasmx@hadamexico.com',
+        role: 'ADMIN',
+      },
+    ];
+
+    for (const user of users) {
+      const userExists = await this.userRepository.findOne({
+        where: { email: user.email },
+      });
+
+      if (userExists) {
+        continue;
+      }
+
+      await this.userRepository.upsert(
+        {
+          name: user.name,
+          password: await argon2.hash(user.password),
+          email: user.email,
+          role: user.role as UserRole,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        ['email'],
+      );
+    }
+
     return { message: 'Seed completed' };
   }
 }
