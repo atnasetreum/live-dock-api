@@ -172,9 +172,9 @@ export class PushNotificationsService {
     let usersIds: number[] = [];
 
     if (!expiredUser) {
-      //const logisticsUserIds = await this.logisticsUserIds;
-      // usersIds = [...logisticsUserIds]; // Correcto
-      usersIds = [createdBy.id]; // TODO: Eliminar esto
+      const logisticsUserIds = await this.logisticsUserIds;
+      usersIds = [...logisticsUserIds]; // Correcto
+      //usersIds = [createdBy.id]; // TODO: Eliminar esto
     } else {
       usersIds = [expiredUser.id];
     }
@@ -212,8 +212,9 @@ export class PushNotificationsService {
   }
 
   async notifyPendingTest(receptionProcess: ReceptionProcess, createdBy: User) {
-    // usersIds = [...this.qualityUserIds]; // Correcto
-    const usersIds = [createdBy.id]; // TODO: Eliminar esto
+    const qualityUserIds = await this.qualityUserIds;
+    const usersIds = [...qualityUserIds]; // Correcto
+    //const usersIds = [createdBy.id]; // TODO: Eliminar esto
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
@@ -256,11 +257,15 @@ export class PushNotificationsService {
     receptionProcess: ReceptionProcess,
     createdBy: User,
   ) {
-    //const qualityUserIds = await this.qualityUserIds;
-    //const logisticsUserIds = await this.logisticsUserIds;
-    //const vigilanceUserIds = await this.vigilanceUserIds;
-    // usersIds = [...qualityUserIds, ...logisticsUserIds, ...vigilanceUserIds]; // Correcto
-    const usersIds = [receptionProcess.createdBy.id]; // TODO: Eliminar esto
+    const qualityUserIds = await this.qualityUserIds;
+    const logisticsUserIds = await this.logisticsUserIds;
+    const vigilanceUserIds = await this.vigilanceUserIds;
+    const usersIds = [
+      ...qualityUserIds,
+      ...logisticsUserIds,
+      ...vigilanceUserIds,
+    ]; // Correcto
+    //const usersIds = [receptionProcess.createdBy.id]; // TODO: Eliminar esto
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
@@ -290,8 +295,9 @@ export class PushNotificationsService {
     receptionProcess: ReceptionProcess,
     createdBy: User,
   ) {
-    // const usersIds = [...this.productionUserIds]; // Correcto
-    const usersIds = [createdBy.id]; // TODO: Eliminar esto
+    const productionUserIds = await this.productionUserIds;
+    const usersIds = [...productionUserIds]; // Correcto
+    //const usersIds = [createdBy.id]; // TODO: Eliminar esto
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
@@ -334,8 +340,9 @@ export class PushNotificationsService {
     receptionProcess: ReceptionProcess,
     createdBy: User,
   ) {
-    // const usersIds = [...this.logisticsUserIds]; // Correcto
-    const usersIds = [createdBy.id]; // TODO: Eliminar esto
+    const logisticsUserIds = await this.logisticsUserIds;
+    const usersIds = [...logisticsUserIds]; // Correcto
+    //const usersIds = [createdBy.id]; // TODO: Eliminar esto
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
@@ -378,8 +385,9 @@ export class PushNotificationsService {
     receptionProcess: ReceptionProcess,
     createdBy: User,
   ) {
-    // const usersIds = [...this.qualityUserIds]; // Correcto
-    const usersIds = [createdBy.id]; // TODO: Eliminar esto
+    const qualityUserIds = await this.qualityUserIds;
+    const usersIds = [...qualityUserIds]; // Correcto
+    //const usersIds = [createdBy.id]; // TODO: Eliminar esto
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
@@ -422,12 +430,17 @@ export class PushNotificationsService {
     receptionProcess: ReceptionProcess,
     createdBy: User,
   ) {
-    /* const logisticsUserIds = await this.logisticsUserIds;
+    const logisticsUserIds = await this.logisticsUserIds;
     const qualityUserIds = await this.qualityUserIds;
     const vigilanceUserIds = await this.vigilanceUserIds;
-    const productionUserIds = await this.productionUserIds; */
-    //const usersIds = [...logisticsUserIds, ...qualityUserIds, ...vigilanceUserIds, ...productionUserIds]; // Correcto
-    const usersIds = [createdBy.id]; // TODO: Eliminar esto
+    const productionUserIds = await this.productionUserIds;
+    const usersIds = [
+      ...logisticsUserIds,
+      ...qualityUserIds,
+      ...vigilanceUserIds,
+      ...productionUserIds,
+    ]; // Correcto
+    //const usersIds = [createdBy.id]; // TODO: Eliminar esto
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 

@@ -112,7 +112,7 @@ export class ReceptionProcessService {
           break;
       }
 
-      userIds = [1]; // TODO: Eliminar esta línea, solo para pruebas
+      //userIds = [1]; // TODO: Eliminar esta línea, solo para pruebas
 
       await this.priorityAlertRepository.save({
         role: role as unknown as PriorityAlertRole,
