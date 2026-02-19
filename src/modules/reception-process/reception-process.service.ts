@@ -548,6 +548,18 @@ export class ReceptionProcessService {
       `Creating notification metric for user ${createdBy.email} and reception process id: ${receptionProcessId}`,
     );
 
+    const eventTypeLast =
+      receptionProcess.metrics[receptionProcess.metrics.length - 1]?.eventType;
+
+    if (
+      eventType === NotificationEventType.ACTION_CLICKED_CONFIRM &&
+      eventTypeLast === NotificationEventType.ACTION_CLICKED_CONFIRM
+    ) {
+      throw new ConflictException(
+        `The last event type for this reception process is already ACTION_CLICKED_CONFIRM, no further confirmation actions can be recorded until a new notification event is generated`,
+      );
+    }
+
     await this.notificationMetricRepository.save({
       eventType,
       visibleAt,
