@@ -40,7 +40,7 @@ export class ReceptionProcessCronService {
         isActive: true,
         status: ReceptionProcessStatus.EN_PROGRESO,
       },
-      relations: ['events', 'createdBy'],
+      relations: ['events', 'events.createdBy'],
       order: {
         events: {
           createdAt: 'ASC',
@@ -56,6 +56,7 @@ export class ReceptionProcessCronService {
       }
 
       const currentStatus = lastEvent.status;
+      const createdBy = lastEvent.createdBy;
 
       if (
         currentStatus.includes('PENDIENTE_DE_CONFIRMACION') &&
@@ -75,7 +76,14 @@ export class ReceptionProcessCronService {
             // Notifica a calidad para que realice el análisis
             await this.pushNotificationsService.notifyPendingTest(
               process,
-              process.createdBy,
+              createdBy,
+            );
+            break;
+          case ProcessState.PRODUCCION_PENDIENTE_DE_CONFIRMACION_PARA_DESCARGA:
+            // Notifica qa produccion que el material esta pendiente de descargar
+            await this.pushNotificationsService.notifyPendingDownload(
+              process,
+              createdBy,
             );
             break;
         }
