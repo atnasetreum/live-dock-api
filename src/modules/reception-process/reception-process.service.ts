@@ -97,7 +97,6 @@ export class ReceptionProcessService {
         },
         {
           isActive: false,
-          updatedAt: new Date(),
         },
       );
     }
@@ -129,8 +128,6 @@ export class ReceptionProcessService {
           id: data.receptionProcessId,
         },
         createdBy,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       });
 
       this.sessionsGateway.emitEventToRoles(
@@ -251,8 +248,6 @@ export class ReceptionProcessService {
         id: receptionProcessId,
       },
       createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
 
     await this.receptionProcessRepository.update(receptionProcessId, {
@@ -548,8 +543,6 @@ export class ReceptionProcessService {
       ...(systemDelaySec !== undefined && { systemDelaySec }),
       metadata: JSON.parse(metadata) as Record<string, any>,
       createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
 
     const lastEvent =
@@ -765,7 +758,6 @@ export class ReceptionProcessService {
       ...rest,
       ...(status && { status }),
       ...(processingTimeMinutes && { processingTimeMinutes }),
-      updatedAt: new Date(),
     });
 
     return this.findOne(id);

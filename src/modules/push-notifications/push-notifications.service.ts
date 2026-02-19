@@ -105,8 +105,6 @@ export class PushNotificationsService {
     const subscriptionNew = this.subscriptionRepository.create({
       subscription,
       user,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
 
     const subscriptionCreate =
@@ -131,7 +129,6 @@ export class PushNotificationsService {
     }
 
     existingSubscription.isActive = false;
-    existingSubscription.updatedAt = new Date();
 
     await this.subscriptionRepository.save(existingSubscription);
 
@@ -180,7 +177,7 @@ export class PushNotificationsService {
       return { message: 'No active subscription found' };
     }
 
-    const eventTime = new Date().toISOString();
+    const eventTime = this.eventTime;
     const sleep = (ms: number) =>
       new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -268,7 +265,7 @@ export class PushNotificationsService {
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
-    const eventTime = new Date().toISOString();
+    const eventTime = this.eventTime;
 
     const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
 
@@ -319,7 +316,7 @@ export class PushNotificationsService {
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
-    const eventTime = new Date().toISOString();
+    const eventTime = this.eventTime;
 
     const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
 
@@ -351,7 +348,7 @@ export class PushNotificationsService {
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
-    const eventTime = new Date().toISOString();
+    const eventTime = this.eventTime;
 
     const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
 
@@ -396,7 +393,7 @@ export class PushNotificationsService {
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
-    const eventTime = new Date().toISOString();
+    const eventTime = this.eventTime;
 
     const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
 
@@ -441,7 +438,7 @@ export class PushNotificationsService {
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
-    const eventTime = new Date().toISOString();
+    const eventTime = this.eventTime;
 
     const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
 
@@ -494,7 +491,7 @@ export class PushNotificationsService {
 
     const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
 
-    const eventTime = new Date().toISOString();
+    const eventTime = this.eventTime;
 
     const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
 

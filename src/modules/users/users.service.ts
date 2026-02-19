@@ -29,8 +29,6 @@ export class UsersService {
 
     const user = this.userRepository.create({
       ...createUserDto,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
     return this.userRepository.save(user);
   }
@@ -116,8 +114,6 @@ export class UsersService {
         password: await argon2.hash('123'),
         email,
         role,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       };
 
       await this.userRepository.upsert(user, ['email']);
@@ -201,8 +197,6 @@ export class UsersService {
           password: await argon2.hash(user.password),
           email: user.email,
           role: user.role as UserRole,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
         ['email'],
       );
