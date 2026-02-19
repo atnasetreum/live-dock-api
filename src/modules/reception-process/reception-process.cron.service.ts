@@ -40,7 +40,7 @@ export class ReceptionProcessCronService {
         isActive: true,
         status: ReceptionProcessStatus.EN_PROGRESO,
       },
-      relations: ['events', 'events.createdBy'],
+      relations: ['events', 'events.createdBy', 'createdBy'],
       order: {
         events: {
           createdAt: 'ASC',
@@ -72,7 +72,7 @@ export class ReceptionProcessCronService {
             // Notifica la llegada de material
             await this.pushNotificationsService.notifiesOfArrival(process);
             break;
-          /* case ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_DE_ANALISIS:
+          case ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_DE_ANALISIS:
             // Notifica a calidad para que realice el análisis
             await this.pushNotificationsService.notifyPendingTest(
               process,
@@ -99,7 +99,7 @@ export class ReceptionProcessCronService {
               process,
               createdBy,
             );
-            break; */
+            break;
         }
       }
     }
