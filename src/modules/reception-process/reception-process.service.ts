@@ -563,10 +563,9 @@ export class ReceptionProcessService {
       receptionProcess.events[receptionProcess.events.length - 1].event;
 
     if (
-      [
-        NotificationEventType.EXPIRED,
-        NotificationEventType.NOTIFICATION_CLICKED_NOT_ACTION,
-      ].includes(eventType) &&
+      [NotificationEventType.NOTIFICATION_CLICKED_NOT_ACTION].includes(
+        eventType,
+      ) &&
       !lastEvent.includes('CONFIRMA')
     ) {
       switch (actionConfirm) {

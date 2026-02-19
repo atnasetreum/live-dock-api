@@ -71,6 +71,13 @@ export class ReceptionProcessCronService {
             // Notifica la llegada de material
             await this.pushNotificationsService.notifiesOfArrival(process);
             break;
+          case ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_DE_ANALISIS:
+            // Notifica a calidad para que realice el análisis
+            await this.pushNotificationsService.notifyPendingTest(
+              process,
+              process.createdBy,
+            );
+            break;
         }
       }
     }
