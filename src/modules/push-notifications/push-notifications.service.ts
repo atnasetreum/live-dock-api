@@ -12,7 +12,6 @@ import { Subscription } from './entities/subscription.entity';
 import * as vapidKeys from 'src/config/vapid-keys.json';
 import { UsersService } from '../users/users.service';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
 webpush.setVapidDetails(
   'mailto:example@example.com',
   vapidKeys.publicKey,

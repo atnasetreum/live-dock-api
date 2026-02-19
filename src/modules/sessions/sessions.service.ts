@@ -28,7 +28,10 @@ export class SessionsService {
     socket: Socket,
     metadata: SessionMetadata = {},
   ): SessionSnapshot[] {
-    const userSessions = this.sessions.get(userId) ?? new Map();
+    const userSessions = (this.sessions.get(userId) ?? new Map()) as Map<
+      string,
+      SessionRecord
+    >;
 
     userSessions.set(socket.id, {
       socket,
