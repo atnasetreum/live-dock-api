@@ -76,6 +76,29 @@ export class PushNotificationsService {
     return new Date().toISOString();
   }
 
+  async validateNumberOfUsers() {
+    const logisticsUserIds = await this.logisticsUserIds;
+    const qualityUserIds = await this.qualityUserIds;
+    const productionUserIds = await this.productionUserIds;
+    const vigilanceUserIds = await this.vigilanceUserIds;
+
+    if (!logisticsUserIds.length) {
+      throw new NotFoundException('No users with LOGISTICA role found');
+    }
+
+    if (!qualityUserIds.length) {
+      throw new NotFoundException('No users with CALIDAD role found');
+    }
+
+    if (!productionUserIds.length) {
+      throw new NotFoundException('No users with PRODUCCION role found');
+    }
+
+    if (!vigilanceUserIds.length) {
+      throw new NotFoundException('No users with VIGILANCIA role found');
+    }
+  }
+
   async createSubscribe({ subscription }: { subscription: string }) {
     const user = this.currentUser;
 

@@ -265,6 +265,8 @@ export class ReceptionProcessService {
   async create({ typeOfMaterial }: CreateReceptionProcessDto) {
     const createdBy = this.currentUser;
 
+    await this.pushNotificationsService.validateNumberOfUsers();
+
     this.logger.debug(`Creating reception process for user ${createdBy.email}`);
 
     const receptionProcessNew = await this.receptionProcessRepository.save({
