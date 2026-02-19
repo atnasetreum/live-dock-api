@@ -458,7 +458,7 @@ export class ReceptionProcessService {
           receptionProcessId,
           createdBy,
           event: ProcessEventOption.LOGISTICA_CAPTURA_DE_PESO_EN_SAP,
-          status: ProcessState.CALIDAD_PENDIENTE_CONFIRMACION_LIBERACION_SAP,
+          status: ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_LIBERACION_SAP,
           role: ProcessEventRole.LOGISTICA,
         });
 
