@@ -272,8 +272,12 @@ export class ReceptionProcessService {
     const receptionProcessNew = await this.receptionProcessRepository.save({
       typeOfMaterial,
       createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date(
+        new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' }),
+      ),
+      updatedAt: new Date(
+        new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' }),
+      ),
     });
 
     const receptionProcessId = receptionProcessNew.id;
