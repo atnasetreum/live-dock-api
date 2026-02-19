@@ -699,13 +699,6 @@ export class ReceptionProcessService {
   }
 
   findAll({ startDate }: { startDate?: string }) {
-    const filter = Between(
-      new Date(`${startDate}T00:00:00`),
-      new Date(`${startDate}T23:59:59`),
-    );
-
-    console.log(filter);
-
     return this.receptionProcessRepository.find({
       where: {
         isActive: true,
