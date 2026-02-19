@@ -2,15 +2,14 @@ import {
   Controller,
   Get,
   Post,
-  Req,
   BadRequestException,
   Body,
   Query,
 } from '@nestjs/common';
 
-import { type Request } from 'express';
-
 import { PushNotificationsService } from './push-notifications.service';
+import { User } from '../users/entities/user.entity';
+import { CurrentUser } from 'src/common';
 
 @Controller('push-notifications')
 export class PushNotificationsController {
@@ -19,28 +18,32 @@ export class PushNotificationsController {
   ) {}
 
   @Post('/subscribe')
-  createSubscribe(@Req() req: Request) {
-    const { subscription } = req.body as { subscription: string };
-
+  createSubscribe(
+    @Body('subscription') subscription: string,
+    @CurrentUser() user: User,
+  ) {
     if (!subscription) {
       throw new BadRequestException('Subscription is required');
     }
 
     return this.pushNotificationsService.createSubscribe({
       subscription,
+      user,
     });
   }
 
   @Post('/unsubscribe')
-  unsubscribe(@Req() req: Request) {
-    const { subscription } = req.body as { subscription: string };
-
+  unsubscribe(
+    @Body('subscription') subscription: string,
+    @CurrentUser() user: User,
+  ) {
     if (!subscription) {
       throw new BadRequestException('Subscription is required');
     }
 
     return this.pushNotificationsService.unsubscribe({
       subscription,
+      user,
     });
   }
 

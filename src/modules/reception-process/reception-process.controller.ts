@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common';
 
 import { ReceptionProcessService } from './reception-process.service';
+import { CurrentUser } from 'src/common';
+import { User } from '../users/entities/user.entity';
 import {
   CreateChangeOfStatusDto,
   CreateNotificationMetricDto,
@@ -24,8 +26,11 @@ export class ReceptionProcessController {
   ) {}
 
   @Post()
-  create(@Body() createReceptionProcessDto: CreateReceptionProcessDto) {
-    return this.receptionProcessService.create(createReceptionProcessDto);
+  create(
+    @Body() createReceptionProcessDto: CreateReceptionProcessDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.receptionProcessService.create(createReceptionProcessDto, user);
   }
 
   @Post('notify-metric')
@@ -38,8 +43,14 @@ export class ReceptionProcessController {
   }
 
   @Post('change-of-status')
-  changeOfStatus(@Body() createChangeOfStatusDto: CreateChangeOfStatusDto) {
-    return this.receptionProcessService.changeOfStatus(createChangeOfStatusDto);
+  changeOfStatus(
+    @Body() createChangeOfStatusDto: CreateChangeOfStatusDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.receptionProcessService.changeOfStatus(
+      createChangeOfStatusDto,
+      user,
+    );
   }
 
   @Get()
@@ -48,8 +59,11 @@ export class ReceptionProcessController {
   }
 
   @Get('priority-alerts')
-  findPriorityAlerts(@Query('startDate') startDate?: string) {
-    return this.receptionProcessService.findPriorityAlerts(startDate);
+  findPriorityAlerts(
+    @CurrentUser() user: User,
+    @Query('startDate') startDate?: string,
+  ) {
+    return this.receptionProcessService.findPriorityAlerts(user, startDate);
   }
 
   @Get(':id')

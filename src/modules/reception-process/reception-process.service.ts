@@ -1,12 +1,10 @@
 import {
   ConflictException,
-  Inject,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { REQUEST } from '@nestjs/core';
 
 import { Between, Repository } from 'typeorm';
 
@@ -46,7 +44,6 @@ export class ReceptionProcessService {
   ];
 
   constructor(
-    @Inject(REQUEST) private readonly request: Request,
     @InjectRepository(ReceptionProcess)
     private readonly receptionProcessRepository: Repository<ReceptionProcess>,
     @InjectRepository(ProcessEvent)
@@ -59,10 +56,6 @@ export class ReceptionProcessService {
     private readonly usersService: UsersService,
     private readonly sessionsGateway: SessionsGateway,
   ) {}
-
-  get currentUser() {
-    return this.request['user'] as User;
-  }
 
   async notifySocketStateReceptionProcess(id: number) {
     const receptionProcess = await this.findOne(id);
@@ -82,9 +75,8 @@ export class ReceptionProcessService {
       severity: PriorityAlertSeverity;
       disableGroup?: boolean;
     },
+    createdBy: User,
   ) {
-    const createdBy = this.currentUser;
-
     let userIds: number[] = [];
 
     if (data?.disableGroup) {
@@ -138,10 +130,8 @@ export class ReceptionProcessService {
     }
   }
 
-  async findPriorityAlerts(startDate?: string) {
-    const currentUser = this.currentUser;
-
-    const role = currentUser.role as unknown as PriorityAlertRole;
+  async findPriorityAlerts(user: User, startDate?: string) {
+    const role = user.role as unknown as PriorityAlertRole;
 
     return this.priorityAlertRepository.find({
       where: {
@@ -257,8 +247,8 @@ export class ReceptionProcessService {
     return processEvent;
   }
 
-  async create({ typeOfMaterial }: CreateReceptionProcessDto) {
-    const createdBy = this.currentUser;
+  async create({ typeOfMaterial }: CreateReceptionProcessDto, user: User) {
+    const createdBy = user;
 
     await this.pushNotificationsService.validateNumberOfUsers();
 
@@ -286,12 +276,16 @@ export class ReceptionProcessService {
     await this.pushNotificationsService.notifiesOfArrival(receptionProcess);
 
     //Notifica por socket evento
-    await this.priorityAlerts([ProcessEventRole.LOGISTICA], {
-      receptionProcessId,
-      title: `Ingreso de pipa #${receptionProcessId} 🚛➡️🏭`,
-      detail: `Tipo de Material: ${typeOfMaterial}.`,
-      severity: PriorityAlertSeverity.ALTA,
-    });
+    await this.priorityAlerts(
+      [ProcessEventRole.LOGISTICA],
+      {
+        receptionProcessId,
+        title: `Ingreso de pipa #${receptionProcessId} 🚛➡️🏭`,
+        detail: `Tipo de Material: ${typeOfMaterial}.`,
+        severity: PriorityAlertSeverity.ALTA,
+      },
+      createdBy,
+    );
 
     // Notifica vía socket el cambio de estado
     return this.notifySocketStateReceptionProcess(receptionProcessId);
@@ -311,10 +305,12 @@ export class ReceptionProcessService {
     });
   }
 
-  async changeOfStatus(createChangeOfStatusDto: CreateChangeOfStatusDto) {
+  async changeOfStatus(
+    createChangeOfStatusDto: CreateChangeOfStatusDto,
+    user: User,
+  ) {
     const { id: receptionProcessId, actionRole } = createChangeOfStatusDto;
-
-    const createdBy = this.currentUser;
+    const createdBy = user;
 
     const receptionProcess = await this.findOne(receptionProcessId);
 
@@ -336,12 +332,16 @@ export class ReceptionProcessService {
         );
 
         //Notifica por socket evento
-        await this.priorityAlerts([ProcessEventRole.CALIDAD], {
-          receptionProcessId,
-          title: `Pendiente de evaluacion #${receptionProcessId} 🧪🔍`,
-          detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
-          severity: PriorityAlertSeverity.ALTA,
-        });
+        await this.priorityAlerts(
+          [ProcessEventRole.CALIDAD],
+          {
+            receptionProcessId,
+            title: `Pendiente de evaluacion #${receptionProcessId} 🧪🔍`,
+            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            severity: PriorityAlertSeverity.ALTA,
+          },
+          createdBy,
+        );
         break;
       case 'calidad-aprobo-material':
         // Registra nuevo evento
@@ -361,12 +361,16 @@ export class ReceptionProcessService {
         );
 
         //Notifica por socket evento
-        await this.priorityAlerts([ProcessEventRole.PRODUCCION], {
-          receptionProcessId,
-          title: `Pendiente de descarga #${receptionProcessId} 📦⬇️`,
-          detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
-          severity: PriorityAlertSeverity.ALTA,
-        });
+        await this.priorityAlerts(
+          [ProcessEventRole.PRODUCCION],
+          {
+            receptionProcessId,
+            title: `Pendiente de descarga #${receptionProcessId} 📦⬇️`,
+            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            severity: PriorityAlertSeverity.ALTA,
+          },
+          createdBy,
+        );
         break;
       case 'calidad-rechazo-material':
         // Registra nuevo evento
@@ -399,6 +403,7 @@ export class ReceptionProcessService {
             severity: PriorityAlertSeverity.BAJA,
             disableGroup: true,
           },
+          createdBy,
         );
 
         // Actualiza estado a finalizado y calcula tiempo de proceso
@@ -436,12 +441,16 @@ export class ReceptionProcessService {
         );
 
         //Notifica por socket evento
-        await this.priorityAlerts([ProcessEventRole.LOGISTICA], {
-          receptionProcessId,
-          title: `Pendiente de peso en SAP #${receptionProcessId} ⚖️📦`,
-          detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
-          severity: PriorityAlertSeverity.ALTA,
-        });
+        await this.priorityAlerts(
+          [ProcessEventRole.LOGISTICA],
+          {
+            receptionProcessId,
+            title: `Pendiente de peso en SAP #${receptionProcessId} ⚖️📦`,
+            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            severity: PriorityAlertSeverity.ALTA,
+          },
+          createdBy,
+        );
         break;
       case 'logistica-capturo-peso-sap':
         // Registra nuevo evento
@@ -460,12 +469,16 @@ export class ReceptionProcessService {
         );
 
         //Notifica por socket evento
-        await this.priorityAlerts([ProcessEventRole.CALIDAD], {
-          receptionProcessId,
-          title: `Pendiente de liberación en SAP #${receptionProcessId} ⚖️📦`,
-          detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
-          severity: PriorityAlertSeverity.ALTA,
-        });
+        await this.priorityAlerts(
+          [ProcessEventRole.CALIDAD],
+          {
+            receptionProcessId,
+            title: `Pendiente de liberación en SAP #${receptionProcessId} ⚖️📦`,
+            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            severity: PriorityAlertSeverity.ALTA,
+          },
+          createdBy,
+        );
         break;
       case 'calidad-libero-sap':
         // Registra nuevo evento
@@ -504,6 +517,7 @@ export class ReceptionProcessService {
             severity: PriorityAlertSeverity.BAJA,
             disableGroup: true,
           },
+          createdBy,
         );
 
         break;

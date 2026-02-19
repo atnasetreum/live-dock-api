@@ -26,7 +26,8 @@ export class ReceptionProcessCronService {
     );
   }
 
-  @Cron('*/10 * * * * *')
+  @Cron('*/10 * * * * *') // TODO: Eliminar esto
+  //@Cron('0 */5 * * * *')
   async logPendingConfirmations() {
     const threshold = new Date(
       Date.now() - this.alertThresholdMinutes * 60 * 1000,
@@ -39,7 +40,7 @@ export class ReceptionProcessCronService {
         isActive: true,
         status: ReceptionProcessStatus.EN_PROGRESO,
       },
-      relations: ['events'],
+      relations: ['events', 'createdBy'],
       order: {
         events: {
           createdAt: 'ASC',
@@ -65,12 +66,11 @@ export class ReceptionProcessCronService {
           `Pending confirmation alert for process ${process.id}`,
         );
 
-        if (
-          currentStatus ===
-          ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_INGRESO
-        ) {
-          console.log('Notifica de nuevo');
-          await this.pushNotificationsService.notifiesOfArrival(process);
+        switch (currentStatus) {
+          case ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_INGRESO:
+            // Notifica la llegada de material
+            await this.pushNotificationsService.notifiesOfArrival(process);
+            break;
         }
       }
     }

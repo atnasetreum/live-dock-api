@@ -1,11 +1,9 @@
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { REQUEST } from '@nestjs/core';
 
 import * as URLSafeBase64 from 'urlsafe-base64';
 import { In, Repository } from 'typeorm';
-import { type Request } from 'express';
 import * as webpush from 'web-push';
 
 import { ReceptionProcess } from '../reception-process/entities/reception-process.entity';
@@ -29,7 +27,6 @@ export class PushNotificationsService {
   private readonly ROOT_IMG_FOLDER = '/push-notifications';
 
   constructor(
-    @Inject(REQUEST) private readonly request: Request,
     @InjectRepository(Subscription)
     private readonly subscriptionRepository: Repository<Subscription>,
     private readonly usersService: UsersService,
@@ -38,10 +35,6 @@ export class PushNotificationsService {
     this.publicBackendUrl =
       this.configService.get<string>('publicBackendUrl') ?? '';
     this.appKey = this.configService.get<string>('appKey') ?? '';
-  }
-
-  get currentUser() {
-    return this.request['user'] as User;
   }
 
   get logisticsUserIds(): Promise<number[]> {
@@ -99,9 +92,13 @@ export class PushNotificationsService {
     }
   }
 
-  async createSubscribe({ subscription }: { subscription: string }) {
-    const user = this.currentUser;
-
+  async createSubscribe({
+    subscription,
+    user,
+  }: {
+    subscription: string;
+    user: User;
+  }) {
     const subscriptionNew = this.subscriptionRepository.create({
       subscription,
       user,
@@ -113,9 +110,13 @@ export class PushNotificationsService {
     return subscriptionCreate;
   }
 
-  async unsubscribe({ subscription }: { subscription: string }) {
-    const user = this.currentUser;
-
+  async unsubscribe({
+    subscription,
+    user,
+  }: {
+    subscription: string;
+    user: User;
+  }) {
     const existingSubscription = await this.subscriptionRepository.findOne({
       where: {
         subscription,
