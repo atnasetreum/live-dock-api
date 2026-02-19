@@ -91,7 +91,9 @@ async function bootstrap() {
 
   await app.listen(PORT);
 
-  logger.debug(`Running on port: [${PORT}], environment: [${NODE_ENV}]`);
+  logger.debug(
+    `Running on\nPort: [${PORT}]\nenvironment: [${NODE_ENV}]\nTimezone: [${Intl.DateTimeFormat().resolvedOptions().timeZone}]`,
+  );
 }
 bootstrap().catch((err) => {
   console.error('Error during application bootstrap:', err);

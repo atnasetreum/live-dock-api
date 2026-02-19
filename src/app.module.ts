@@ -1,5 +1,6 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import {
   MiddlewareConsumer,
   Module,
@@ -41,6 +42,7 @@ const ENV = process.env.NODE_ENV;
         synchronize: true,
       }),
     }),
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     SessionsModule,

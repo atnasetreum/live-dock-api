@@ -6,6 +6,7 @@ services:
       - .env.development
     image: postgres:18
     restart: always
+    command: ['postgres', '-c', 'timezone=America/Mexico_City']
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

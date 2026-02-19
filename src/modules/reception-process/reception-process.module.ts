@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 
 import { PushNotificationsModule } from '../push-notifications/push-notifications.module';
 import { ReceptionProcessController } from './reception-process.controller';
+import { ReceptionProcessCronService } from './reception-process.cron.service';
 import { ReceptionProcessService } from './reception-process.service';
 import { SessionsModule } from '../sessions/sessions.module';
 import { UsersModule } from '../users/users.module';
@@ -26,6 +27,6 @@ import {
     SessionsModule,
   ],
   controllers: [ReceptionProcessController],
-  providers: [ReceptionProcessService],
+  providers: [ReceptionProcessService, ReceptionProcessCronService],
 })
 export class ReceptionProcessModule {}
