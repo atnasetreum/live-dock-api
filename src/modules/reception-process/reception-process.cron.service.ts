@@ -93,7 +93,7 @@ export class ReceptionProcessCronService {
               createdBy,
             );
             break;
-          case ProcessState.CALIDAD_PENDIENTE_CONFIRMACION_LIBERACION_SAP:
+          case ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_LIBERACION_SAP:
             // Notifica a calidad, pendiente de liberación en sap
             await this.pushNotificationsService.notifyPendingReleaseInSAP(
               process,
