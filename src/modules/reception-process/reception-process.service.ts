@@ -269,6 +269,23 @@ export class ReceptionProcessService {
 
     this.logger.debug(`Creating reception process for user ${createdBy.email}`);
 
+    const date = new Date();
+
+    // Obtener el nombre de la zona horaria (ej. "America/Mexico_City" o "GMT+0200")
+    const timeZoneName =
+      date.toString().match(/\((.+)\)$/)?.[1] ||
+      date.toString().split(' ').pop();
+
+    // O, si el entorno soporta la API de internacionalización (la mayoría de Node.js modernos):
+    const serverTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    console.log(`La zona horaria del servidor es: ${serverTimeZone}`);
+
+    // Obtener el offset en minutos de la hora local a UTC
+    const offsetInMinutes = date.getTimezoneOffset();
+    console.log(`El offset es: ${offsetInMinutes} minutos`);
+
+    console.log({ timeZoneName });
+
     const receptionProcessNew = await this.receptionProcessRepository.save({
       typeOfMaterial,
       createdBy,
