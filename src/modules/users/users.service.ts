@@ -90,12 +90,12 @@ export class UsersService {
 
   async seed() {
     for (const role of [
+      UserRole.ADMIN,
       UserRole.VIGILANCIA,
       UserRole.LOGISTICA,
       UserRole.CALIDAD,
       UserRole.PRODUCCION,
       UserRole.SISTEMA,
-      UserRole.ADMIN,
     ]) {
       let email = `user-${role.toLocaleLowerCase()}@example.com`;
 
