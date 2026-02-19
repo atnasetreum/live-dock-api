@@ -202,7 +202,7 @@ export class ReceptionProcessService {
 
       if (lastStatus === status) {
         throw new ConflictException(
-          `The reception process is already in status ${status}`,
+          `El proceso de recepcion ya esta en estado ${status}`,
         );
       }
 
@@ -223,7 +223,7 @@ export class ReceptionProcessService {
 
           if (expectedEvent && event !== expectedEvent) {
             throw new ConflictException(
-              `The next event should be ${expectedEvent} after ${lastEvent}`,
+              `El siguiente evento debe ser ${expectedEvent} despues de ${lastEvent}`,
             );
           }
         }
@@ -556,7 +556,7 @@ export class ReceptionProcessService {
       eventTypeLast === NotificationEventType.ACTION_CLICKED_CONFIRM
     ) {
       throw new ConflictException(
-        `The last event type for this reception process is already ACTION_CLICKED_CONFIRM, no further confirmation actions can be recorded until a new notification event is generated`,
+        'El ultimo tipo de evento para este proceso de recepcion ya es ACTION_CLICKED_CONFIRM; no se pueden registrar mas confirmaciones hasta generar un nuevo evento de notificacion',
       );
     }
 
@@ -764,7 +764,9 @@ export class ReceptionProcessService {
     });
 
     if (!receptionProcess) {
-      throw new NotFoundException(`ReceptionProcess with id ${id} not found`);
+      throw new NotFoundException(
+        `Proceso de recepcion con id ${id} no encontrado`,
+      );
     }
 
     return receptionProcess;

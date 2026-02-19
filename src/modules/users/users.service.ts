@@ -24,7 +24,7 @@ export class UsersService {
     });
 
     if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+      throw new ConflictException('Ya existe un usuario con este correo');
     }
 
     const user = this.userRepository.create({
@@ -51,7 +51,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
+      throw new NotFoundException(`Usuario con id ${id} no encontrado`);
     }
 
     return user;

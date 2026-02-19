@@ -33,7 +33,7 @@ export class JwtService {
   verify(token: string): JwtPayload {
     const decoded = jwt.verify(token, this.secretKey);
     if (typeof decoded === 'string') {
-      throw new Error('Invalid token payload');
+      throw new Error('Contenido del token invalido');
     }
     return decoded as JwtPayload;
   }

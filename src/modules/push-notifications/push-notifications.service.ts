@@ -76,19 +76,25 @@ export class PushNotificationsService {
     const vigilanceUserIds = await this.vigilanceUserIds;
 
     if (!logisticsUserIds.length) {
-      throw new NotFoundException('No users with LOGISTICA role found');
+      throw new NotFoundException(
+        'No se encontraron usuarios con rol LOGISTICA',
+      );
     }
 
     if (!qualityUserIds.length) {
-      throw new NotFoundException('No users with CALIDAD role found');
+      throw new NotFoundException('No se encontraron usuarios con rol CALIDAD');
     }
 
     if (!productionUserIds.length) {
-      throw new NotFoundException('No users with PRODUCCION role found');
+      throw new NotFoundException(
+        'No se encontraron usuarios con rol PRODUCCION',
+      );
     }
 
     if (!vigilanceUserIds.length) {
-      throw new NotFoundException('No users with VIGILANCIA role found');
+      throw new NotFoundException(
+        'No se encontraron usuarios con rol VIGILANCIA',
+      );
     }
   }
 
@@ -148,7 +154,7 @@ export class PushNotificationsService {
 
     if (!subscriptions.length) {
       this.logger.warn('No active subscriptions found');
-      throw new NotFoundException('No active subscriptions found');
+      throw new NotFoundException('No se encontraron suscripciones activas');
     }
 
     await Promise.all(

@@ -23,7 +23,7 @@ export class PushNotificationsController {
     @CurrentUser() user: User,
   ) {
     if (!subscription) {
-      throw new BadRequestException('Subscription is required');
+      throw new BadRequestException('La suscripcion es requerida');
     }
 
     return this.pushNotificationsService.createSubscribe({
@@ -38,7 +38,7 @@ export class PushNotificationsController {
     @CurrentUser() user: User,
   ) {
     if (!subscription) {
-      throw new BadRequestException('Subscription is required');
+      throw new BadRequestException('La suscripcion es requerida');
     }
 
     return this.pushNotificationsService.unsubscribe({

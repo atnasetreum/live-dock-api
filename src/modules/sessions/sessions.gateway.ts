@@ -138,7 +138,7 @@ export class SessionsGateway
       return queryToken;
     }
 
-    throw new Error('Missing authentication token');
+    throw new Error('Falta el token de autenticacion');
   }
 
   private buildMetadata(client: Socket): SessionMetadata {

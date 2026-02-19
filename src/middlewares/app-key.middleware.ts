@@ -16,11 +16,11 @@ export class AppKeyMiddleware implements NestMiddleware {
     const appKey = this.configService.get<string>('appKey');
 
     if (!appKeyHeader) {
-      throw new BadRequestException('API Key is required');
+      throw new BadRequestException('Se requiere API Key');
     }
 
     if (appKeyHeader !== appKey) {
-      throw new BadRequestException('API Key is invalid');
+      throw new BadRequestException('API Key invalida');
     }
 
     next();

@@ -32,7 +32,7 @@ export class JwtMiddleware implements NestMiddleware {
     const token = cookies?.token ?? '';
 
     if (!token) {
-      throw new UnauthorizedException('Token not found');
+      throw new UnauthorizedException('Token no encontrado');
     }
 
     try {
@@ -42,7 +42,7 @@ export class JwtMiddleware implements NestMiddleware {
       next();
     } catch (error) {
       this.logger.debug(`JWT Error: ${error}`);
-      throw new UnauthorizedException('Invalid token');
+      throw new UnauthorizedException('Token invalido');
     }
   }
 }

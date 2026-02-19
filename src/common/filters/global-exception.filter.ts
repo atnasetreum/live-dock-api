@@ -68,8 +68,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     return {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
-      error: 'Internal Server Error',
-      message: 'An unexpected error occurred',
+      error: 'Error interno del servidor',
+      message: 'Ocurrio un error inesperado',
     };
   }
 
@@ -80,21 +80,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       case '23505':
         return {
           status: HttpStatus.CONFLICT,
-          error: 'Duplicate entry',
+          error: 'Entrada duplicada',
           message:
             driverError.detail ??
-            'Duplicate key value violates unique constraint',
+            'El valor duplicado viola una restriccion unica',
         };
       case '23503':
         return {
           status: HttpStatus.BAD_REQUEST,
-          error: 'Foreign key violation',
-          message: driverError.detail ?? 'Foreign key constraint violated',
+          error: 'Violacion de llave foranea',
+          message:
+            driverError.detail ?? 'Se violó la restriccion de llave foranea',
         };
       default:
         return {
           status: HttpStatus.BAD_REQUEST,
-          error: 'Database error',
+          error: 'Error de base de datos',
           message: driverError?.detail ?? error.message,
         };
     }

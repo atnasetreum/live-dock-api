@@ -13,7 +13,7 @@ import { PushNotificationsService } from '../push-notifications/push-notificatio
 
 @Injectable()
 export class ReceptionProcessCronService {
-  private readonly alertThresholdMinutes = 1;
+  private readonly alertThresholdMinutes = 5;
   private readonly logger = new Logger(ReceptionProcessCronService.name);
 
   constructor(

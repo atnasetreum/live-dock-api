@@ -79,11 +79,13 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException(`User with email ${email} not found`);
+      throw new NotFoundException(
+        `Usuario con el correo ${email} no encontrado`,
+      );
     }
 
     if (!(await argon2.verify(user.password, password))) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Credenciales invalidas');
     }
 
     const token = this.jwtService.create(user.id);
@@ -109,20 +111,20 @@ export class AuthService {
     const authorization = this.request.headers['authorization'];
 
     if (!authorization) {
-      throw new UnauthorizedException('Authorization header missing');
+      throw new UnauthorizedException('Falta el encabezado de autorizacion');
     }
 
     const token = authorization.split(' ')[1];
 
     if (!token) {
-      throw new UnauthorizedException('Token not found');
+      throw new UnauthorizedException('Token no encontrado');
     }
     try {
       this.jwtService.verify(token);
       return { message: 'Token válido.' };
     } catch (error) {
       this.logger.debug(`JWT Error: ${error}`);
-      throw new UnauthorizedException(`Invalid token`);
+      throw new UnauthorizedException('Token invalido');
     }
   }
 }
