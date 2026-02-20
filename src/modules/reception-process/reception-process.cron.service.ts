@@ -1,26 +1,32 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 
 import { Repository } from 'typeorm';
 
+import { PushNotificationsService } from '../push-notifications/push-notifications.service';
+import { ENV_PRODUCTION } from 'src/constants';
 import {
   ProcessState,
   ReceptionProcess,
   ReceptionProcessStatus,
 } from './entities';
-import { PushNotificationsService } from '../push-notifications/push-notifications.service';
 
 @Injectable()
 export class ReceptionProcessCronService {
-  private readonly alertThresholdMinutes = 5;
+  private readonly alertThresholdMinutes: number = 0;
   private readonly logger = new Logger(ReceptionProcessCronService.name);
 
   constructor(
     @InjectRepository(ReceptionProcess)
     private readonly receptionProcessRepository: Repository<ReceptionProcess>,
     private readonly pushNotificationsService: PushNotificationsService,
+    private readonly configService: ConfigService,
   ) {
+    const environment = this.configService.get<string>('environment')!;
+    this.alertThresholdMinutes = environment === ENV_PRODUCTION ? 5 : 0.15; // 5 minutes in production, 0.15 minutes (9 seconds) in development for testing purposes
+
     this.logger.log(
       `ReceptionProcessCronService initialized with alert threshold of ${this.alertThresholdMinutes} minutes`,
     );
