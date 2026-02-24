@@ -26,20 +26,16 @@ export class ReceptionProcessCronService {
   ) {
     const environment = this.configService.get<string>('environment')!;
     this.alertThresholdMinutes = environment === ENV_PRODUCTION ? 5 : 0.15; // 5 minutes in production, 0.15 minutes (9 seconds) in development for testing purposes
-
     this.logger.log(
       `ReceptionProcessCronService initialized with alert threshold of ${this.alertThresholdMinutes} minutes`,
     );
   }
 
-  @Cron('*/10 * * * * *') // TODO: Eliminar esto
-  //@Cron('0 */5 * * * *')
+  @Cron('*/10 * * * * *')
   async logPendingConfirmations() {
     const threshold = new Date(
       Date.now() - this.alertThresholdMinutes * 60 * 1000,
     );
-
-    this.logger.debug(`Running evaluation of pending confirmations...`);
 
     const processes = await this.receptionProcessRepository.find({
       where: {
