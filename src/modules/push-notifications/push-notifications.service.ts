@@ -156,6 +156,8 @@ export class PushNotificationsService {
       throw new NotFoundException('No se encontraron suscripciones activas');
     }
 
+    console.log({ size: subscriptions.length, userId });
+
     await Promise.all(
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {

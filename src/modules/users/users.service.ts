@@ -154,7 +154,7 @@ export class UsersService {
         name: 'Vigilancia',
         password: '#Vigilancia01',
         email: 'vigilancia2@hadamexico.com',
-        role: 'CALIDAD',
+        role: 'VIGILANCIA',
       },
       {
         name: 'Ernesto Ruíz',
