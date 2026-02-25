@@ -205,7 +205,9 @@ export class SessionsGateway
   }
 
   reloadAlerts() {
-    this.emitAllUsers('reception-process:reload_alerts', {});
+    setTimeout(() => {
+      this.emitAllUsers('reception-process:reload_alerts', {});
+    }, 2000);
   }
 
   emitEventToRoles(
