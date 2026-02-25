@@ -103,6 +103,15 @@ export class ReceptionProcessCronService {
             );
             break;
         }
+      } else {
+        this.logger.debug(
+          `Process ${process.id} is not pending confirmation or not past threshold, time remaining: ${Math.max(
+            0,
+            Math.round(
+              (threshold.getTime() - lastEvent.createdAt.getTime()) / 1000,
+            ),
+          )} seconds`,
+        );
       }
     }
   }
