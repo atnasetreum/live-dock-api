@@ -302,9 +302,9 @@ export class ReceptionProcessService {
       processingTimeMinutes: Math.round(
         (new Date().getTime() - receptionProcess.createdAt.getTime()) / 60000,
       ),
+    }).then(() => {
+      this.sessionsGateway.reloadAlerts();
     });
-
-    this.sessionsGateway.reloadAlerts();
   }
 
   async changeOfStatus(
