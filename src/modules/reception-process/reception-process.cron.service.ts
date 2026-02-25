@@ -60,58 +60,55 @@ export class ReceptionProcessCronService {
       const currentStatus = lastEvent.status;
       const createdBy = lastEvent.createdBy;
 
-      if (
-        currentStatus.includes('PENDIENTE_DE_CONFIRMACION') &&
-        lastEvent.createdAt <= threshold
-      ) {
-        // Use logger as requested for the alert.
-        this.logger.warn(
-          `Pending confirmation alert for process ${process.id}, status: ${currentStatus}`,
-        );
+      if (currentStatus.includes('PENDIENTE_DE_CONFIRMACION')) {
+        if (lastEvent.createdAt <= threshold) {
+          // Use logger as requested for the alert.
+          this.logger.warn(
+            `Pending confirmation alert for process ${process.id}, status: ${currentStatus}`,
+          );
 
-        switch (currentStatus) {
-          case ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_INGRESO:
-            // Notifica la llegada de material
-            await this.pushNotificationsService.notifiesOfArrival(process);
-            break;
-          case ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_DE_ANALISIS:
-            // Notifica a calidad para que realice el análisis
-            await this.pushNotificationsService.notifyPendingTest(
-              process,
-              createdBy,
-            );
-            break;
-          case ProcessState.PRODUCCION_PENDIENTE_DE_CONFIRMACION_PARA_DESCARGA:
-            // Notifica qa produccion que el material esta pendiente de descargar
-            await this.pushNotificationsService.notifyPendingDownload(
-              process,
-              createdBy,
-            );
-            break;
-          case ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_CAPTURA_PESO_SAP:
-            // Notifica a logistica, pendiente de peso en sap
-            await this.pushNotificationsService.notifyPendingWeightInSAP(
-              process,
-              createdBy,
-            );
-            break;
-          case ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_LIBERACION_SAP:
-            // Notifica a calidad, pendiente de liberación en sap
-            await this.pushNotificationsService.notifyPendingReleaseInSAP(
-              process,
-              createdBy,
-            );
-            break;
+          switch (currentStatus) {
+            case ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_INGRESO:
+              // Notifica la llegada de material
+              await this.pushNotificationsService.notifiesOfArrival(process);
+              break;
+            case ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_DE_ANALISIS:
+              // Notifica a calidad para que realice el análisis
+              await this.pushNotificationsService.notifyPendingTest(
+                process,
+                createdBy,
+              );
+              break;
+            case ProcessState.PRODUCCION_PENDIENTE_DE_CONFIRMACION_PARA_DESCARGA:
+              // Notifica qa produccion que el material esta pendiente de descargar
+              await this.pushNotificationsService.notifyPendingDownload(
+                process,
+                createdBy,
+              );
+              break;
+            case ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_CAPTURA_PESO_SAP:
+              // Notifica a logistica, pendiente de peso en sap
+              await this.pushNotificationsService.notifyPendingWeightInSAP(
+                process,
+                createdBy,
+              );
+              break;
+            case ProcessState.CALIDAD_PENDIENTE_DE_CONFIRMACION_LIBERACION_SAP:
+              // Notifica a calidad, pendiente de liberación en sap
+              await this.pushNotificationsService.notifyPendingReleaseInSAP(
+                process,
+                createdBy,
+              );
+              break;
+          }
+        } else {
+          const timeUntilThreshold =
+            lastEvent.createdAt.getTime() - threshold.getTime();
+          const minutesRemaining = timeUntilThreshold / (60 * 1000);
+          this.logger.log(
+            `Process ${process.id} will trigger alert in ${minutesRemaining.toFixed(2)} minutes, status: ${currentStatus}`,
+          );
         }
-      } else {
-        this.logger.debug(
-          `Process ${process.id} is not pending confirmation or not past threshold, , status: ${currentStatus}, time remaining: ${Math.max(
-            0,
-            Math.round(
-              (threshold.getTime() - lastEvent.createdAt.getTime()) / 1000,
-            ),
-          )} seconds`,
-        );
       }
     }
   }
