@@ -66,7 +66,7 @@ export class ReceptionProcessCronService {
       ) {
         // Use logger as requested for the alert.
         this.logger.warn(
-          `Pending confirmation alert for process ${process.id}`,
+          `Pending confirmation alert for process ${process.id}, status: ${currentStatus}`,
         );
 
         switch (currentStatus) {
@@ -105,7 +105,7 @@ export class ReceptionProcessCronService {
         }
       } else {
         this.logger.debug(
-          `Process ${process.id} is not pending confirmation or not past threshold, time remaining: ${Math.max(
+          `Process ${process.id} is not pending confirmation or not past threshold, , status: ${currentStatus}, time remaining: ${Math.max(
             0,
             Math.round(
               (threshold.getTime() - lastEvent.createdAt.getTime()) / 1000,
