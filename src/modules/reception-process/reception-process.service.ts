@@ -303,6 +303,8 @@ export class ReceptionProcessService {
         (new Date().getTime() - receptionProcess.createdAt.getTime()) / 60000,
       ),
     });
+
+    this.sessionsGateway.reloadAlerts();
   }
 
   async changeOfStatus(

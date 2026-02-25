@@ -204,6 +204,10 @@ export class SessionsGateway
     this.emitAllUsers('reception-process:status_update', receptionProcess);
   }
 
+  reloadAlerts() {
+    this.emitAllUsers('reception-process:reload_alerts', {});
+  }
+
   emitEventToRoles(
     event: string,
     data: {
@@ -214,7 +218,6 @@ export class SessionsGateway
     userIds: number[],
   ): void {
     userIds.forEach((userId) => {
-      console.log({ event });
       this.sessionsService.emitToUser(userId, event, data);
     });
   }
