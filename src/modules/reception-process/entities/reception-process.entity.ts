@@ -24,7 +24,7 @@ export enum ReceptionProcessTypeOfMaterial {
   ALCOHOL = 'ALCOHOL',
   AGUA = 'AGUA',
   LESS = 'LESS',
-  COLGATE = 'COLGATE',
+  A_GRANEL = 'A GRANEL',
 }
 
 @Index(['status', 'createdAt']) // 1. Filtros por estado y fecha
