@@ -56,6 +56,9 @@ export class ReceptionProcess {
   @Column({ name: 'processing_time_minutes', nullable: true })
   processingTimeMinutes: number;
 
+  @Column({ name: 'rejection_notes', nullable: true })
+  rejectionNotes: string;
+
   @Column({ default: true, name: 'is_active' })
   isActive: boolean;
 

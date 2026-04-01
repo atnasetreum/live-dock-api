@@ -81,9 +81,18 @@ export class UsersService {
   }
 
   async findAllByRole(role: UserRole) {
-    return this.userRepository.find({
-      where: { role, isActive: true },
-    });
+    return this.userRepository
+      .createQueryBuilder('user')
+      .innerJoinAndSelect(
+        'user.subscriptions',
+        'subscription',
+        'subscription.isActive = :subscriptionActive',
+        { subscriptionActive: true },
+      )
+      .where('user.role = :role', { role })
+      .andWhere('user.isActive = :userActive', { userActive: true })
+      .distinct(true)
+      .getMany();
   }
 
   async seed() {

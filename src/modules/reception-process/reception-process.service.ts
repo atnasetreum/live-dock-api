@@ -222,9 +222,15 @@ export class ReceptionProcessService {
             | undefined;
 
           if (expectedEvent && event !== expectedEvent) {
-            throw new ConflictException(
-              `El siguiente evento debe ser ${expectedEvent} despues de ${lastEvent}`,
-            );
+            const isValidAlternativeEvent =
+              expectedEvent === ProcessEventOption.LOGISTICA_AUTORIZA_INGRESO &&
+              event === ProcessEventOption.LOGISTICA_RECHAZA_INGRESO;
+
+            if (!isValidAlternativeEvent) {
+              throw new ConflictException(
+                `El siguiente evento debe ser ${expectedEvent} despues de ${lastEvent}`,
+              );
+            }
           }
         }
       }
@@ -296,9 +302,11 @@ export class ReceptionProcessService {
     status:
       | ReceptionProcessStatus.FINALIZADO
       | ReceptionProcessStatus.RECHAZADO,
+    rejectionNotes?: string,
   ) {
     await this.update(receptionProcess.id, {
       status,
+      ...(rejectionNotes && { rejectionNotes }),
       processingTimeMinutes: Math.round(
         (new Date().getTime() - receptionProcess.createdAt.getTime()) / 60000,
       ),
@@ -311,7 +319,12 @@ export class ReceptionProcessService {
     createChangeOfStatusDto: CreateChangeOfStatusDto,
     user: User,
   ) {
-    const { id: receptionProcessId, actionRole } = createChangeOfStatusDto;
+    const {
+      id: receptionProcessId,
+      actionRole,
+      rejectionNotes = '',
+    } = createChangeOfStatusDto;
+
     const createdBy = user;
 
     const receptionProcess = await this.findOne(receptionProcessId);
@@ -344,6 +357,49 @@ export class ReceptionProcessService {
           },
           createdBy,
         );
+        break;
+      case 'logistica-rechazo-ingreso':
+        // Registra nuevo evento
+        await this.createProcessEvent({
+          receptionProcessId,
+          createdBy,
+          event: 'LOGISTICA_RECHAZA_INGRESO' as unknown as ProcessEventOption,
+          status: ProcessState.FINALIZO_PROCESO_POR_RECHAZO,
+          role: ProcessEventRole.LOGISTICA,
+        });
+
+        // Notifica que logistica rechazo el ingreso
+        await this.pushNotificationsService.notifyTestRejected(
+          receptionProcess,
+          createdBy,
+          'logistica',
+        );
+
+        //Notifica por socket evento
+        await this.priorityAlerts(
+          [
+            ProcessEventRole.VIGILANCIA,
+            ProcessEventRole.PRODUCCION,
+            ProcessEventRole.LOGISTICA,
+            ProcessEventRole.CALIDAD,
+          ],
+          {
+            receptionProcessId,
+            title: `Rechazado por logistica #${receptionProcessId} ❌🚛`,
+            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            severity: PriorityAlertSeverity.BAJA,
+            disableGroup: true,
+          },
+          createdBy,
+        );
+
+        // Actualiza estado a finalizado y calcula tiempo de proceso
+        await this.endReceptionProcess(
+          receptionProcess,
+          ReceptionProcessStatus.RECHAZADO,
+          rejectionNotes,
+        );
+
         break;
       case 'calidad-aprobo-material':
         // Registra nuevo evento
@@ -412,6 +468,7 @@ export class ReceptionProcessService {
         await this.endReceptionProcess(
           receptionProcess,
           ReceptionProcessStatus.RECHAZADO,
+          rejectionNotes,
         );
 
         break;
@@ -553,12 +610,14 @@ export class ReceptionProcessService {
     const eventTypeLast =
       receptionProcess.metrics[receptionProcess.metrics.length - 1]?.eventType;
 
+    await this.pushNotificationsService.validateNumberOfUsers();
+
     if (
       eventType === NotificationEventType.ACTION_CLICKED_CONFIRM &&
       eventTypeLast === NotificationEventType.ACTION_CLICKED_CONFIRM
     ) {
       throw new ConflictException(
-        'El ultimo tipo de evento para este proceso de recepcion ya es ACTION_CLICKED_CONFIRM; no se pueden registrar mas confirmaciones hasta generar un nuevo evento de notificacion',
+        'El último tipo de evento para este proceso de recepcion ya es ACTION_CLICKED_CONFIRM; no se pueden registrar mas confirmaciones hasta generar un nuevo evento de notificacion',
       );
     }
 
@@ -605,6 +664,7 @@ export class ReceptionProcessService {
           );
           break;
         case 'logistica_confirma_pendiente_peso_en_sap':
+        case 'logistica_confirma_pendiente_peso_en_saP':
           // Notifica a logistica, pendiente de peso en sap
           await this.pushNotificationsService.notifyPendingWeightInSAP(
             receptionProcess,
@@ -678,6 +738,7 @@ export class ReceptionProcessService {
           });
           break;
         case 'logistica_confirma_pendiente_peso_en_sap':
+        case 'logistica_confirma_pendiente_peso_en_saP':
           if (
             lastStatus === ProcessState.LOGISTICA_PENDIENTE_DE_CAPTURA_PESO_SAP
           ) {

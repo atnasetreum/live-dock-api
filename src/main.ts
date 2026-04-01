@@ -92,7 +92,7 @@ async function bootstrap() {
   await app.listen(PORT);
 
   logger.debug(
-    `\n\nRunning on\n\nPort: [${PORT}]\n\nenvironment: [${NODE_ENV}]\n\nTimezone: [${Intl.DateTimeFormat().resolvedOptions().timeZone}]`,
+    `\n\nRunning on\nPort: [${PORT}]\nenvironment: [${NODE_ENV}]\nTimezone: [${Intl.DateTimeFormat().resolvedOptions().timeZone}]\n\n`,
   );
 }
 bootstrap().catch((err) => {

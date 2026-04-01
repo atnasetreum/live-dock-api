@@ -76,23 +76,25 @@ export class PushNotificationsService {
 
     if (!logisticsUserIds.length) {
       throw new NotFoundException(
-        'No se encontraron usuarios con rol LOGISTICA',
+        'No se encontraron usuarios con rol LOGISTICA, con notifcaciones activas',
       );
     }
 
     if (!qualityUserIds.length) {
-      throw new NotFoundException('No se encontraron usuarios con rol CALIDAD');
+      throw new NotFoundException(
+        'No se encontraron usuarios con rol CALIDAD, con notifcaciones activas',
+      );
     }
 
     if (!productionUserIds.length) {
       throw new NotFoundException(
-        'No se encontraron usuarios con rol PRODUCCION',
+        'No se encontraron usuarios con rol PRODUCCION, con notifcaciones activas',
       );
     }
 
     if (!vigilanceUserIds.length) {
       throw new NotFoundException(
-        'No se encontraron usuarios con rol VIGILANCIA',
+        'No se encontraron usuarios con rol VIGILANCIA, con notifcaciones activas',
       );
     }
   }
@@ -311,6 +313,7 @@ export class PushNotificationsService {
   async notifyTestRejected(
     receptionProcess: ReceptionProcess,
     createdBy: User,
+    rejectedBy: 'calidad' | 'logistica' = 'calidad',
   ) {
     const qualityUserIds = await this.qualityUserIds;
     const logisticsUserIds = await this.logisticsUserIds;
@@ -327,11 +330,14 @@ export class PushNotificationsService {
     const eventTime = this.eventTime;
 
     const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+    const rejectedByLabel =
+      rejectedBy === 'logistica' ? 'logistica' : 'calidad';
+    const rejectedByIcon = rejectedBy === 'logistica' ? '🚛' : '🧪';
 
     await Promise.all(
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
-          title: `Rechazado por calidad #${receptionProcessId} ❌🧪`,
+          title: `Rechazado por ${rejectedByLabel} #${receptionProcessId} ❌${rejectedByIcon}`,
           body: `Tipo de material: ${typeOfMaterial}\nUsuario que rechazo: ${createdBy.name}`,
           image: 'image-rejected.png',
           data: {

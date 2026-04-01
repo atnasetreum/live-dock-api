@@ -1,4 +1,4 @@
-import { IsPositive, IsString } from 'class-validator';
+import { IsOptional, IsPositive, IsString } from 'class-validator';
 
 export class CreateChangeOfStatusDto {
   @IsPositive()
@@ -6,4 +6,8 @@ export class CreateChangeOfStatusDto {
 
   @IsString()
   actionRole: string;
+
+  @IsOptional()
+  @IsString()
+  rejectionNotes: string;
 }
