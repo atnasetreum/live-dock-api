@@ -46,6 +46,12 @@ export class ReceptionProcess {
   })
   status: ReceptionProcessStatus;
 
+  @Column({ name: 'provider_name', length: 150 })
+  providerName: string;
+
+  @Column({ name: 'license_plates', length: 100 })
+  licensePlates: string;
+
   @Column({
     type: 'enum',
     enum: ReceptionProcessTypeOfMaterial,

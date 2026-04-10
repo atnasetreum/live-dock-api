@@ -253,7 +253,10 @@ export class ReceptionProcessService {
     return processEvent;
   }
 
-  async create({ typeOfMaterial }: CreateReceptionProcessDto, user: User) {
+  async create(
+    { typeOfMaterial, providerName, licensePlates }: CreateReceptionProcessDto,
+    user: User,
+  ) {
     const createdBy = user;
 
     await this.pushNotificationsService.validateNumberOfUsers();
@@ -262,6 +265,8 @@ export class ReceptionProcessService {
 
     const receptionProcessNew = await this.receptionProcessRepository.save({
       typeOfMaterial,
+      providerName,
+      licensePlates,
       createdBy,
     });
 
@@ -610,7 +615,7 @@ export class ReceptionProcessService {
     const eventTypeLast =
       receptionProcess.metrics[receptionProcess.metrics.length - 1]?.eventType;
 
-    await this.pushNotificationsService.validateNumberOfUsers();
+    //await this.pushNotificationsService.validateNumberOfUsers();
 
     if (
       eventType === NotificationEventType.ACTION_CLICKED_CONFIRM &&
