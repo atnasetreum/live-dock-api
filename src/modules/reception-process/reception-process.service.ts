@@ -615,7 +615,7 @@ export class ReceptionProcessService {
     const eventTypeLast =
       receptionProcess.metrics[receptionProcess.metrics.length - 1]?.eventType;
 
-    //await this.pushNotificationsService.validateNumberOfUsers();
+    await this.pushNotificationsService.validateNumberOfUsers();
 
     if (
       eventType === NotificationEventType.ACTION_CLICKED_CONFIRM &&
