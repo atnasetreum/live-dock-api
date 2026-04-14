@@ -189,6 +189,42 @@ export class UsersService {
         email: 'sistemasmx@hadamexico.com',
         role: 'ADMIN',
       },
+      {
+        name: 'Diana Morán',
+        password: '#aMoran01',
+        email: 'dmoran@hadamexico.com',
+        role: 'CALIDAD',
+      },
+      {
+        name: 'Brenda Rodríguez',
+        password: '#bRodriguez01',
+        email: 'brodriguez@hadamexico.com',
+        role: 'CALIDAD',
+      },
+      {
+        name: 'Javier Luna',
+        password: '#jLuna01',
+        email: 'jluna@hadamexico.com',
+        role: 'CALIDAD',
+      },
+      {
+        name: 'Luis Domínguez',
+        password: '#lDominguez01',
+        email: 'ldominguez@hadamexico.com',
+        role: 'CALIDAD',
+      },
+      {
+        name: 'Edith Garrido',
+        password: '#eGarrido01',
+        email: 'egarrido@hadamexico.com',
+        role: 'CALIDAD',
+      },
+      {
+        name: 'Fernanda Minila',
+        password: '#fMinila01',
+        email: 'fminila@hadamexico.com',
+        role: 'CALIDAD',
+      },
     ];
 
     for (const user of users) {
