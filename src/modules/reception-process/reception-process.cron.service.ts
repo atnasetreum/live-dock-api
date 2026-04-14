@@ -86,6 +86,13 @@ export class ReceptionProcessCronService {
                 createdBy,
               );
               break;
+            case ProcessState.VIGILANCIA_PENDIENTE_DE_CONFIRMACION_TICKET_PENDIENTE:
+              // Notifica a vigilancia, pendiente de ticket pendiente
+              await this.pushNotificationsService.notifyPendingTicket(
+                process,
+                createdBy,
+              );
+              break;
             case ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_CAPTURA_PESO_SAP:
               // Notifica a logistica, pendiente de peso en sap
               await this.pushNotificationsService.notifyPendingWeightInSAP(

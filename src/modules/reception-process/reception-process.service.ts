@@ -173,10 +173,12 @@ export class ReceptionProcessService {
         6: ProcessEventOption.PRODUCCION_CONFIRMA_PENDIENTE_DE_DESCARGA,
         7: ProcessEventOption.PRODUCCION_INICIA_DESCARGA,
         8: ProcessEventOption.PRODUCCION_FINALIZA_DESCARGA,
-        9: ProcessEventOption.LOGISTICA_CONFIRMA_CAPTURA_DE_PESO_EN_SAP,
-        10: ProcessEventOption.LOGISTICA_CAPTURA_DE_PESO_EN_SAP,
-        11: ProcessEventOption.CALIDAD_CONFIRMA_PENDIENTE_DE_LIBERACION_EN_SAP,
-        12: ProcessEventOption.CALIDAD_LIBERA_EN_SAP,
+        9: ProcessEventOption.VIGILANCIA_CONFIRMA_TICKET_PENDIENTE,
+        10: ProcessEventOption.VIGILANCIA_CONFIRMA_TICKET,
+        11: ProcessEventOption.LOGISTICA_CONFIRMA_CAPTURA_DE_PESO_EN_SAP,
+        12: ProcessEventOption.LOGISTICA_CAPTURA_DE_PESO_EN_SAP,
+        13: ProcessEventOption.CALIDAD_CONFIRMA_PENDIENTE_DE_LIBERACION_EN_SAP,
+        14: ProcessEventOption.CALIDAD_LIBERA_EN_SAP,
       };
 
       if (event === ProcessEventOption.CALIDAD_APRUEBA_MATERIAL) {
@@ -494,17 +496,46 @@ export class ReceptionProcessService {
           createdBy,
           event: ProcessEventOption.PRODUCCION_FINALIZA_DESCARGA,
           status:
-            ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_CAPTURA_PESO_SAP,
+            ProcessState.VIGILANCIA_PENDIENTE_DE_CONFIRMACION_TICKET_PENDIENTE,
           role: ProcessEventRole.PRODUCCION,
         });
 
-        // Notifica a logistica, pendiente de peso en sap
-        await this.pushNotificationsService.notifyPendingWeightInSAP(
+        // Notifica a vigilancia, pendiente de ticket pendiente
+        await this.pushNotificationsService.notifyPendingTicket(
           receptionProcess,
           createdBy,
         );
 
         //Notifica por socket evento
+        await this.priorityAlerts(
+          [ProcessEventRole.VIGILANCIA],
+          {
+            receptionProcessId,
+            title: `Pendiente de confirmar ticket pendiente #${receptionProcessId} 🎫❓`,
+            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            severity: PriorityAlertSeverity.ALTA,
+          },
+          createdBy,
+        );
+        break;
+      case 'ticket-entregado':
+        // Registra nuevo evento
+        await this.createProcessEvent({
+          receptionProcessId,
+          createdBy,
+          event: ProcessEventOption.VIGILANCIA_CONFIRMA_TICKET,
+          status:
+            ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_CAPTURA_PESO_SAP,
+          role: ProcessEventRole.LOGISTICA,
+        });
+
+        // Notifica a logistica, pendiente de confirmación de peso en sap
+        await this.pushNotificationsService.notifyPendingWeightInSAP(
+          receptionProcess,
+          createdBy,
+        );
+
+        // Notifica por socket evento
         await this.priorityAlerts(
           [ProcessEventRole.LOGISTICA],
           {
@@ -668,7 +699,13 @@ export class ReceptionProcessService {
             createdBy,
           );
           break;
-        case 'logistica_confirma_pendiente_peso_en_sap':
+        case 'vigilancia_confirma_pendiente_ticket_pendiente':
+          // Notifica a vigilancia, pendiente de ticket pendiente
+          await this.pushNotificationsService.notifyPendingTicket(
+            receptionProcess,
+            createdBy,
+          );
+          break;
         case 'logistica_confirma_pendiente_peso_en_saP':
           // Notifica a logistica, pendiente de peso en sap
           await this.pushNotificationsService.notifyPendingWeightInSAP(
@@ -742,7 +779,25 @@ export class ReceptionProcessService {
             role: ProcessEventRole.PRODUCCION,
           });
           break;
-        case 'logistica_confirma_pendiente_peso_en_sap':
+        case 'vigilancia_confirma_pendiente_ticket_pendiente':
+          if (
+            lastStatus ===
+            ProcessState.VIGILANCIA_PENDIENTE_DE_ENTREGA_DE_TICKET
+          ) {
+            return {
+              message: `No action taken because the process is still pending weight capture confirmation in SAP by logistics`,
+            };
+          }
+
+          // Registra nuevo evento
+          await this.createProcessEvent({
+            receptionProcessId,
+            createdBy,
+            event: ProcessEventOption.VIGILANCIA_CONFIRMA_TICKET_PENDIENTE,
+            status: ProcessState.VIGILANCIA_PENDIENTE_DE_ENTREGA_DE_TICKET,
+            role: ProcessEventRole.VIGILANCIA,
+          });
+          break;
         case 'logistica_confirma_pendiente_peso_en_saP':
           if (
             lastStatus === ProcessState.LOGISTICA_PENDIENTE_DE_CAPTURA_PESO_SAP

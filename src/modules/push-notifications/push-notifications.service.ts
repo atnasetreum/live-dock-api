@@ -397,6 +397,51 @@ export class PushNotificationsService {
     );
   }
 
+  async notifyPendingTicket(
+    receptionProcess: ReceptionProcess,
+    createdBy: User,
+  ) {
+    const vigilanceUserIds = await this.vigilanceUserIds;
+    const usersIds = [...vigilanceUserIds]; // Correcto
+    //const usersIds = [createdBy.id]; // TODO: Eliminar esto
+
+    const subscriptions = await this.findSubscriptionsByUserIds(usersIds);
+
+    const eventTime = this.eventTime;
+
+    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+
+    const actionConfirm = 'vigilancia_confirma_pendiente_ticket_pendiente';
+
+    await Promise.all(
+      subscriptions.map((subscription) =>
+        this.sendNotification(subscription, {
+          title: `Pendiente de ticket pendiente #${receptionProcessId} ⚖️📦`,
+          body: `Tipo de material: ${typeOfMaterial}\nUsuario que autorizó: ${createdBy.name}`,
+          image: 'img-pending-download.png',
+          actions: [
+            {
+              action: 'confirm',
+              title: 'Confirmar',
+              icon: `${this.ROOT_IMG_FOLDER}/confirm-icon.webp`,
+            },
+          ],
+
+          tagId: `pending-ticket-${receptionProcessId}`,
+          requireInteraction: true,
+          data: {
+            id: receptionProcessId,
+            eventTime,
+            notifiedUserId: subscription.user.id,
+            publicBackendUrl: this.publicBackendUrl,
+            appKey: this.appKey,
+            actionConfirm,
+          },
+        }),
+      ),
+    );
+  }
+
   async notifyPendingWeightInSAP(
     receptionProcess: ReceptionProcess,
     createdBy: User,
