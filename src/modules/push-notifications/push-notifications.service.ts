@@ -216,15 +216,21 @@ export class PushNotificationsService {
     });
   }
 
+  createDetailsNotification(
+    receptionProcess: ReceptionProcess,
+    createdBy: User,
+  ) {
+    const { typeOfMaterial, providerName, licensePlates } = receptionProcess;
+    const { name } = createdBy;
+
+    return `Tipo de material: ${typeOfMaterial}\nUsuario que ejecutó: ${name}\nProveedor: ${providerName}\nPlacas: ${licensePlates}`;
+  }
+
   async notifiesOfArrival(
     receptionProcess: ReceptionProcess,
     expiredUser?: User,
   ) {
-    const {
-      id: receptionProcessId,
-      typeOfMaterial,
-      createdBy,
-    } = receptionProcess;
+    const { id: receptionProcessId, createdBy } = receptionProcess;
 
     let usersIds: number[] = [];
 
@@ -244,7 +250,7 @@ export class PushNotificationsService {
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
           title: `Ingreso de pipa #${receptionProcessId} 🚛➡️🏭`,
-          body: `Tipo de Material: ${typeOfMaterial}\nCreado por: ${createdBy.name}`,
+          body: this.createDetailsNotification(receptionProcess, createdBy),
           image: 'img-ingreso-pipa.png',
           actions: [
             {
@@ -277,7 +283,7 @@ export class PushNotificationsService {
 
     const eventTime = this.eventTime;
 
-    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+    const { id: receptionProcessId } = receptionProcess;
 
     const actionConfirm = 'calidad_confirma_test';
 
@@ -285,7 +291,7 @@ export class PushNotificationsService {
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
           title: `Pendiente de evaluacion #${receptionProcessId} 🧪🔍`,
-          body: `Tipo de material: ${typeOfMaterial}\nUsuario que autorizó: ${createdBy.name}`,
+          body: this.createDetailsNotification(receptionProcess, createdBy),
           image: 'img-pending-test.png',
           actions: [
             {
@@ -329,7 +335,7 @@ export class PushNotificationsService {
 
     const eventTime = this.eventTime;
 
-    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+    const { id: receptionProcessId } = receptionProcess;
     const rejectedByLabel =
       rejectedBy === 'logistica' ? 'logistica' : 'calidad';
     const rejectedByIcon = rejectedBy === 'logistica' ? '🚛' : '🧪';
@@ -338,7 +344,7 @@ export class PushNotificationsService {
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
           title: `Rechazado por ${rejectedByLabel} #${receptionProcessId} ❌${rejectedByIcon}`,
-          body: `Tipo de material: ${typeOfMaterial}\nUsuario que rechazo: ${createdBy.name}`,
+          body: this.createDetailsNotification(receptionProcess, createdBy),
           image: 'image-rejected.png',
           data: {
             id: receptionProcessId,
@@ -364,7 +370,7 @@ export class PushNotificationsService {
 
     const eventTime = this.eventTime;
 
-    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+    const { id: receptionProcessId } = receptionProcess;
 
     const actionConfirm = 'produccion_confirma_descarga';
 
@@ -372,7 +378,7 @@ export class PushNotificationsService {
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
           title: `Pendiente de descarga #${receptionProcessId} 📦⬇️`,
-          body: `Tipo de material: ${typeOfMaterial}\nUsuario que autorizó: ${createdBy.name}`,
+          body: this.createDetailsNotification(receptionProcess, createdBy),
           image: 'img-pending-download.png',
           actions: [
             {
@@ -409,7 +415,7 @@ export class PushNotificationsService {
 
     const eventTime = this.eventTime;
 
-    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+    const { id: receptionProcessId } = receptionProcess;
 
     const actionConfirm = 'vigilancia_confirma_pendiente_ticket_pendiente';
 
@@ -417,7 +423,7 @@ export class PushNotificationsService {
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
           title: `Pendiente de ticket pendiente #${receptionProcessId} ⚖️📦`,
-          body: `Tipo de material: ${typeOfMaterial}\nUsuario que autorizó: ${createdBy.name}`,
+          body: this.createDetailsNotification(receptionProcess, createdBy),
           image: 'img-pending-download.png',
           actions: [
             {
@@ -454,7 +460,7 @@ export class PushNotificationsService {
 
     const eventTime = this.eventTime;
 
-    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+    const { id: receptionProcessId } = receptionProcess;
 
     const actionConfirm = 'logistica_confirma_pendiente_peso_en_sap';
 
@@ -462,7 +468,7 @@ export class PushNotificationsService {
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
           title: `Pendiente de peso en SAP #${receptionProcessId} ⚖️📦`,
-          body: `Tipo de material: ${typeOfMaterial}\nUsuario que autorizó: ${createdBy.name}`,
+          body: this.createDetailsNotification(receptionProcess, createdBy),
           image: 'img-pending-weight.png',
           actions: [
             {
@@ -499,7 +505,7 @@ export class PushNotificationsService {
 
     const eventTime = this.eventTime;
 
-    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+    const { id: receptionProcessId } = receptionProcess;
 
     const actionConfirm = 'calidad_confima_liberacion_en_sap';
 
@@ -507,7 +513,7 @@ export class PushNotificationsService {
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
           title: `Pendiente de liberación en SAP #${receptionProcessId} ⚖️📦`,
-          body: `Tipo de material: ${typeOfMaterial}\nUsuario que autorizó: ${createdBy.name}`,
+          body: this.createDetailsNotification(receptionProcess, createdBy),
           image: 'img-pending-release.png',
           actions: [
             {
@@ -552,13 +558,13 @@ export class PushNotificationsService {
 
     const eventTime = this.eventTime;
 
-    const { id: receptionProcessId, typeOfMaterial } = receptionProcess;
+    const { id: receptionProcessId } = receptionProcess;
 
     await Promise.all(
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
           title: `Proceso finalizado #${receptionProcessId} ✅🎉`,
-          body: `Tipo de material: ${typeOfMaterial}\nUsuario que autorizó: ${createdBy.name}`,
+          body: this.createDetailsNotification(receptionProcess, createdBy),
           image: 'img-process-finished.png',
           tagId: `process-finished-${receptionProcessId}`,
           data: {

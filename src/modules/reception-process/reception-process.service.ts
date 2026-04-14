@@ -294,7 +294,10 @@ export class ReceptionProcessService {
       {
         receptionProcessId,
         title: `Ingreso de pipa #${receptionProcessId} 🚛➡️🏭`,
-        detail: `Tipo de Material: ${typeOfMaterial}.`,
+        detail: this.pushNotificationsService.createDetailsNotification(
+          receptionProcess,
+          createdBy,
+        ),
         severity: PriorityAlertSeverity.ALTA,
       },
       createdBy,
@@ -359,7 +362,10 @@ export class ReceptionProcessService {
           {
             receptionProcessId,
             title: `Pendiente de evaluacion #${receptionProcessId} 🧪🔍`,
-            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            detail: this.pushNotificationsService.createDetailsNotification(
+              receptionProcess,
+              createdBy,
+            ),
             severity: PriorityAlertSeverity.ALTA,
           },
           createdBy,
@@ -393,7 +399,10 @@ export class ReceptionProcessService {
           {
             receptionProcessId,
             title: `Rechazado por logistica #${receptionProcessId} ❌🚛`,
-            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            detail: this.pushNotificationsService.createDetailsNotification(
+              receptionProcess,
+              createdBy,
+            ),
             severity: PriorityAlertSeverity.BAJA,
             disableGroup: true,
           },
@@ -431,7 +440,10 @@ export class ReceptionProcessService {
           {
             receptionProcessId,
             title: `Pendiente de descarga #${receptionProcessId} 📦⬇️`,
-            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            detail: this.pushNotificationsService.createDetailsNotification(
+              receptionProcess,
+              createdBy,
+            ),
             severity: PriorityAlertSeverity.ALTA,
           },
           createdBy,
@@ -464,7 +476,10 @@ export class ReceptionProcessService {
           {
             receptionProcessId,
             title: `Rechazado por calidad #${receptionProcessId} ❌🧪`,
-            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            detail: this.pushNotificationsService.createDetailsNotification(
+              receptionProcess,
+              createdBy,
+            ),
             severity: PriorityAlertSeverity.BAJA,
             disableGroup: true,
           },
@@ -512,7 +527,10 @@ export class ReceptionProcessService {
           {
             receptionProcessId,
             title: `Pendiente de confirmar ticket pendiente #${receptionProcessId} 🎫❓`,
-            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            detail: this.pushNotificationsService.createDetailsNotification(
+              receptionProcess,
+              createdBy,
+            ),
             severity: PriorityAlertSeverity.ALTA,
           },
           createdBy,
@@ -526,7 +544,7 @@ export class ReceptionProcessService {
           event: ProcessEventOption.VIGILANCIA_CONFIRMA_TICKET,
           status:
             ProcessState.LOGISTICA_PENDIENTE_DE_CONFIRMACION_CAPTURA_PESO_SAP,
-          role: ProcessEventRole.LOGISTICA,
+          role: ProcessEventRole.VIGILANCIA,
         });
 
         // Notifica a logistica, pendiente de confirmación de peso en sap
@@ -541,7 +559,10 @@ export class ReceptionProcessService {
           {
             receptionProcessId,
             title: `Pendiente de peso en SAP #${receptionProcessId} ⚖️📦`,
-            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            detail: this.pushNotificationsService.createDetailsNotification(
+              receptionProcess,
+              createdBy,
+            ),
             severity: PriorityAlertSeverity.ALTA,
           },
           createdBy,
@@ -569,7 +590,10 @@ export class ReceptionProcessService {
           {
             receptionProcessId,
             title: `Pendiente de liberación en SAP #${receptionProcessId} ⚖️📦`,
-            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            detail: this.pushNotificationsService.createDetailsNotification(
+              receptionProcess,
+              createdBy,
+            ),
             severity: PriorityAlertSeverity.ALTA,
           },
           createdBy,
@@ -608,7 +632,10 @@ export class ReceptionProcessService {
           {
             receptionProcessId,
             title: `Proceso finalizado #${receptionProcessId} ✅🎉`,
-            detail: `Tipo de Material: ${receptionProcess.typeOfMaterial}.`,
+            detail: this.pushNotificationsService.createDetailsNotification(
+              receptionProcess,
+              createdBy,
+            ),
             severity: PriorityAlertSeverity.BAJA,
             disableGroup: true,
           },
