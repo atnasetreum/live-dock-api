@@ -590,6 +590,7 @@ export class PushNotificationsService {
   ) {
     if (this.environment === ENV_DEVELOPMENT) {
       const now = Date.now();
+
       const isCooldownActive = now < this.devCooldownUntilTs;
 
       if (isCooldownActive) {
@@ -605,11 +606,13 @@ export class PushNotificationsService {
 
       const subscriptionDev = await this.subscriptionRepository.findOne({
         where: {
+          isActive: true,
           user: {
             id: 1,
           },
         },
         relations: ['user'],
+        order: { createdAt: 'DESC' },
       });
 
       if (!subscriptionDev) {
@@ -618,6 +621,10 @@ export class PushNotificationsService {
         this.logger.warn('No active subscription found for development user');
         return;
       }
+
+      this.logger.debug(
+        'Using development subscription for notification in development mode',
+      );
 
       subscription = subscriptionDev;
     }
@@ -628,10 +635,8 @@ export class PushNotificationsService {
         JSON.stringify(options),
       )
       .then(() => {
-        console.log('*********** ENVIAR **********');
-
         this.logger.debug(
-          `Notification sent successfully to user ${subscription.user.name}`,
+          `Notification sent successfully to user ${subscription.user.email}`,
         );
       })
       .catch(async (err: unknown) => {
