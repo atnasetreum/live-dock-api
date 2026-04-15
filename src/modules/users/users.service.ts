@@ -225,6 +225,12 @@ export class UsersService {
         email: 'fminila@hadamexico.com',
         role: 'CALIDAD',
       },
+      {
+        name: 'Daniel Trujillo',
+        password: '#Trujillo01',
+        email: 'dtrujillo@hadamexico.com',
+        role: 'ADMIN',
+      },
     ];
 
     for (const user of users) {

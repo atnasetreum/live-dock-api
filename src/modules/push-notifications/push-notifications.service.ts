@@ -11,6 +11,7 @@ import { User, UserRole } from '../users/entities/user.entity';
 import { Subscription } from './entities/subscription.entity';
 import * as vapidKeys from 'src/config/vapid-keys.json';
 import { UsersService } from '../users/users.service';
+import { ENV_DEVELOPMENT } from 'src/constants';
 
 webpush.setVapidDetails(
   'mailto:example@example.com',
@@ -24,6 +25,9 @@ export class PushNotificationsService {
   private publicBackendUrl: string;
   private appKey: string;
   private readonly ROOT_IMG_FOLDER = '/push-notifications';
+  private readonly DEV_NOTIFICATION_COOLDOWN_MS = 5_000;
+  private devCooldownUntilTs = 0;
+  environment: string;
 
   constructor(
     @InjectRepository(Subscription)
@@ -34,6 +38,7 @@ export class PushNotificationsService {
     this.publicBackendUrl =
       this.configService.get<string>('publicBackendUrl') ?? '';
     this.appKey = this.configService.get<string>('appKey') ?? '';
+    this.environment = this.configService.get<string>('environment')!;
   }
 
   get logisticsUserIds(): Promise<number[]> {
@@ -417,12 +422,12 @@ export class PushNotificationsService {
 
     const { id: receptionProcessId } = receptionProcess;
 
-    const actionConfirm = 'vigilancia_confirma_pendiente_ticket_pendiente';
+    const actionConfirm = 'vigilancia_confirma_pendiente_ticket_peso';
 
     await Promise.all(
       subscriptions.map((subscription) =>
         this.sendNotification(subscription, {
-          title: `Pendiente de ticket pendiente #${receptionProcessId} ⚖️📦`,
+          title: `Pendiente de ticket de peso #${receptionProcessId} ⚖️📦`,
           body: this.createDetailsNotification(receptionProcess, createdBy),
           image: 'img-pending-download.png',
           actions: [
@@ -583,13 +588,51 @@ export class PushNotificationsService {
     subscription: Subscription,
     options: Record<string, any>,
   ) {
+    if (this.environment === ENV_DEVELOPMENT) {
+      const now = Date.now();
+      const isCooldownActive = now < this.devCooldownUntilTs;
+
+      if (isCooldownActive) {
+        const remainingMs = this.devCooldownUntilTs - now;
+        this.logger.debug(
+          `Notification skipped in development mode due to cooldown (${remainingMs}ms remaining)`,
+        );
+        return;
+      }
+
+      // Reserve cooldown immediately to avoid concurrent invocations sending in parallel.
+      this.devCooldownUntilTs = now + this.DEV_NOTIFICATION_COOLDOWN_MS;
+
+      const subscriptionDev = await this.subscriptionRepository.findOne({
+        where: {
+          user: {
+            id: 1,
+          },
+        },
+        relations: ['user'],
+      });
+
+      if (!subscriptionDev) {
+        // Release cooldown reservation if no dev subscription exists.
+        this.devCooldownUntilTs = 0;
+        this.logger.warn('No active subscription found for development user');
+        return;
+      }
+
+      subscription = subscriptionDev;
+    }
+
     await webpush
       .sendNotification(
         JSON.parse(subscription.subscription) as webpush.PushSubscription,
         JSON.stringify(options),
       )
       .then(() => {
-        this.logger.debug('Notification sent');
+        console.log('*********** ENVIAR **********');
+
+        this.logger.debug(
+          `Notification sent successfully to user ${subscription.user.name}`,
+        );
       })
       .catch(async (err: unknown) => {
         const statusCode =

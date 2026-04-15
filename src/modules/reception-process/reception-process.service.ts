@@ -510,12 +510,11 @@ export class ReceptionProcessService {
           receptionProcessId,
           createdBy,
           event: ProcessEventOption.PRODUCCION_FINALIZA_DESCARGA,
-          status:
-            ProcessState.VIGILANCIA_PENDIENTE_DE_CONFIRMACION_TICKET_PENDIENTE,
+          status: ProcessState.VIGILANCIA_PENDIENTE_DE_CONFIRMACION_TICKET_PESO,
           role: ProcessEventRole.PRODUCCION,
         });
 
-        // Notifica a vigilancia, pendiente de ticket pendiente
+        // Notifica a vigilancia, pendiente de ticket peso
         await this.pushNotificationsService.notifyPendingTicket(
           receptionProcess,
           createdBy,
@@ -726,14 +725,14 @@ export class ReceptionProcessService {
             createdBy,
           );
           break;
-        case 'vigilancia_confirma_pendiente_ticket_pendiente':
-          // Notifica a vigilancia, pendiente de ticket pendiente
+        case 'vigilancia_confirma_pendiente_ticket_peso':
+          // Notifica a vigilancia, pendiente de ticket peso
           await this.pushNotificationsService.notifyPendingTicket(
             receptionProcess,
             createdBy,
           );
           break;
-        case 'logistica_confirma_pendiente_peso_en_saP':
+        case 'logistica_confirma_pendiente_peso_en_sap':
           // Notifica a logistica, pendiente de peso en sap
           await this.pushNotificationsService.notifyPendingWeightInSAP(
             receptionProcess,
@@ -806,7 +805,7 @@ export class ReceptionProcessService {
             role: ProcessEventRole.PRODUCCION,
           });
           break;
-        case 'vigilancia_confirma_pendiente_ticket_pendiente':
+        case 'vigilancia_confirma_pendiente_ticket_peso':
           if (
             lastStatus ===
             ProcessState.VIGILANCIA_PENDIENTE_DE_ENTREGA_DE_TICKET
@@ -825,7 +824,7 @@ export class ReceptionProcessService {
             role: ProcessEventRole.VIGILANCIA,
           });
           break;
-        case 'logistica_confirma_pendiente_peso_en_saP':
+        case 'logistica_confirma_pendiente_peso_en_sap':
           if (
             lastStatus === ProcessState.LOGISTICA_PENDIENTE_DE_CAPTURA_PESO_SAP
           ) {
