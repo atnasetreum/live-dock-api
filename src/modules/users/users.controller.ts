@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Controller,
   Get,
   Post,
@@ -8,6 +9,8 @@ import {
   Delete,
 } from '@nestjs/common';
 
+import { CurrentUser } from 'src/common';
+import { User, UserRole } from './entities/user.entity';
 import { CreateUserDto, UpdateUserDto } from './dto';
 import { UsersService } from './users.service';
 
@@ -15,8 +18,20 @@ import { UsersService } from './users.service';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  private validateAdminAccess(currentUser: User) {
+    if (currentUser.role !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'Solo los usuarios ADMIN pueden gestionar usuarios',
+      );
+    }
+  }
+
   @Post()
-  create(@Body() createUserDto: CreateUserDto) {
+  create(
+    @CurrentUser() currentUser: User,
+    @Body() createUserDto: CreateUserDto,
+  ) {
+    this.validateAdminAccess(currentUser);
     return this.usersService.create(createUserDto);
   }
 
@@ -26,22 +41,30 @@ export class UsersController {
   }
 
   @Get()
-  findAll() {
+  findAll(@CurrentUser() currentUser: User) {
+    this.validateAdminAccess(currentUser);
     return this.usersService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@CurrentUser() currentUser: User, @Param('id') id: string) {
+    this.validateAdminAccess(currentUser);
     return this.usersService.findOne(+id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  update(
+    @CurrentUser() currentUser: User,
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    this.validateAdminAccess(currentUser);
     return this.usersService.update(+id, updateUserDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@CurrentUser() currentUser: User, @Param('id') id: string) {
+    this.validateAdminAccess(currentUser);
     return this.usersService.remove(+id);
   }
 }

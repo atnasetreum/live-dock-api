@@ -36,6 +36,7 @@ export class UsersService {
   findAll() {
     return this.userRepository.find({
       where: { isActive: true },
+      order: { name: 'ASC' },
     });
   }
 
