@@ -16,6 +16,7 @@ import {
 @Injectable()
 export class ReceptionProcessCronService {
   private readonly alertThresholdMinutes: number = 0;
+  private readonly processCooldownUntilTs = new Map<number, number>();
   private readonly logger = new Logger(ReceptionProcessCronService.name);
 
   constructor(
@@ -33,9 +34,9 @@ export class ReceptionProcessCronService {
 
   @Cron('*/10 * * * * *')
   async logPendingConfirmations() {
-    const threshold = new Date(
-      Date.now() - this.alertThresholdMinutes * 60 * 1000,
-    );
+    const now = Date.now();
+    const cooldownMs = this.alertThresholdMinutes * 60 * 1000;
+    const threshold = new Date(now - this.alertThresholdMinutes * 60 * 1000);
 
     const processes = await this.receptionProcessRepository.find({
       where: {
@@ -61,6 +62,16 @@ export class ReceptionProcessCronService {
       const createdBy = lastEvent.createdBy;
 
       if (currentStatus.includes('PENDIENTE_DE_CONFIRMACION')) {
+        const cooldownUntil = this.processCooldownUntilTs.get(process.id) ?? 0;
+
+        if (cooldownUntil > now) {
+          const msRemaining = cooldownUntil - now;
+          this.logger.log(
+            `Process ${process.id} still cooling down for ${(msRemaining / 1000).toFixed(1)} seconds`,
+          );
+          continue;
+        }
+
         if (lastEvent.createdAt <= threshold) {
           // Use logger as requested for the alert.
           this.logger.warn(
@@ -108,6 +119,8 @@ export class ReceptionProcessCronService {
               );
               break;
           }
+          // Reinicia la ventana de alertThresholdMinutes para enfriar este proceso.
+          this.processCooldownUntilTs.set(process.id, now + cooldownMs);
         } else {
           const timeUntilThreshold =
             lastEvent.createdAt.getTime() - threshold.getTime();
@@ -116,6 +129,8 @@ export class ReceptionProcessCronService {
             `Process ${process.id} will trigger alert in ${minutesRemaining.toFixed(2)} minutes, status: ${currentStatus}`,
           );
         }
+      } else {
+        this.processCooldownUntilTs.delete(process.id);
       }
     }
   }
