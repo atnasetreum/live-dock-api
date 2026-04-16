@@ -66,8 +66,9 @@ export class ReceptionProcessCronService {
 
         if (cooldownUntil > now) {
           const msRemaining = cooldownUntil - now;
+          const minutesRemaining = msRemaining / (60 * 1000);
           this.logger.log(
-            `Process ${process.id} still cooling down for ${(msRemaining / 1000).toFixed(1)} seconds`,
+            `Process ${process.id} still cooling down for ${minutesRemaining.toFixed(2)} minutes`,
           );
           continue;
         }

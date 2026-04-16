@@ -46,7 +46,7 @@ export class SessionsGateway
     return this.usersService.findAllByIds(this.currentUsersIds);
   }
 
-  handleConnection(client: Socket): void {
+  async handleConnection(client: Socket): Promise<void> {
     try {
       const token = this.extractToken(client);
       const { userId } = this.jwtService.verify(token);
@@ -73,9 +73,9 @@ export class SessionsGateway
 
       this.sessionsService.emitToUser(userId, 'sessions:update', snapshot);
 
-      this.logger.debug(
-        `User ${userId} connected to sessions gateway with socket ${client.id}`,
-      );
+      const user = await this.usersService.findOne(userId);
+
+      this.logger.debug(`User ${user.email} connected to app`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unauthorized';
       this.logger.warn(`WS connection refused: ${message}`);
