@@ -12,9 +12,10 @@ import {
 import { Socket } from 'socket.io';
 
 import { SessionMetadata, SessionsService } from './sessions.service';
+import { MonitorViewMode } from './sessions.service';
 import { ReceptionProcess } from '../reception-process/entities';
 import { UsersService } from '../users/users.service';
-import { User } from '../users/entities/user.entity';
+import { User, UserRole } from '../users/entities/user.entity';
 import { JwtService } from 'src/auth';
 
 @WebSocketGateway({
@@ -70,6 +71,10 @@ export class SessionsGateway
           await this.updateCurrentUsers();
         },
       );
+
+      client.emit('monitor:view_mode:update', {
+        viewMode: this.sessionsService.getMonitorViewMode(),
+      });
 
       this.sessionsService.emitToUser(userId, 'sessions:update', snapshot);
 
@@ -227,5 +232,62 @@ export class SessionsGateway
   @SubscribeMessage('sessions:get_current_users')
   async handleGetCurrentUsers(): Promise<void> {
     await this.updateCurrentUsers();
+  }
+
+  @SubscribeMessage('monitor:view_mode:get')
+  handleGetMonitorViewMode(client: Socket): void {
+    client.emit('monitor:view_mode:update', {
+      viewMode: this.sessionsService.getMonitorViewMode(),
+    });
+  }
+
+  @SubscribeMessage('monitor:view_mode:set')
+  async handleSetMonitorViewMode(
+    client: Socket,
+    payload: { viewMode?: MonitorViewMode },
+  ): Promise<void> {
+    const requestedViewMode = payload?.viewMode;
+    const userId: number | undefined = (client.data as { userId?: number })
+      .userId;
+
+    if (!userId) {
+      client.emit('monitor:view_mode:error', {
+        message: 'Usuario no autenticado.',
+      });
+      return;
+    }
+
+    const currentUser = await this.usersService.findOne(userId);
+    if (currentUser.role !== UserRole.ADMIN) {
+      client.emit('monitor:view_mode:error', {
+        message: 'Solo ADMIN puede cambiar la vista del monitor.',
+      });
+      return;
+    }
+
+    if (!requestedViewMode) {
+      client.emit('monitor:view_mode:error', {
+        message: 'Modo de monitor no proporcionado.',
+      });
+      return;
+    }
+
+    const allowedModes: MonitorViewMode[] = [
+      'timeline',
+      'horizontal',
+      'desktop',
+    ];
+
+    if (!allowedModes.includes(requestedViewMode)) {
+      client.emit('monitor:view_mode:error', {
+        message: 'Modo de monitor no valido.',
+      });
+      return;
+    }
+
+    this.sessionsService.setMonitorViewMode(requestedViewMode);
+    this.emitAllUsers('monitor:view_mode:update', {
+      viewMode: requestedViewMode,
+    });
   }
 }

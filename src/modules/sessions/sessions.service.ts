@@ -14,6 +14,8 @@ export interface SessionSnapshot {
   metadata: SessionMetadata;
 }
 
+export type MonitorViewMode = 'timeline' | 'horizontal' | 'desktop';
+
 interface SessionRecord extends SessionSnapshot {
   socket: Socket;
 }
@@ -22,6 +24,7 @@ interface SessionRecord extends SessionSnapshot {
 export class SessionsService {
   // Map<UserId, Map<SocketId, SessionRecord>> to keep every active connection per user
   private readonly sessions = new Map<number, Map<string, SessionRecord>>();
+  private monitorViewMode: MonitorViewMode = 'horizontal';
 
   register(
     userId: number,
@@ -105,6 +108,15 @@ export class SessionsService {
     return Array.from(contextCounts.entries()).map(
       ([context, count]) => `${count} ${context}`,
     );
+  }
+
+  getMonitorViewMode(): MonitorViewMode {
+    return this.monitorViewMode;
+  }
+
+  setMonitorViewMode(viewMode: MonitorViewMode): MonitorViewMode {
+    this.monitorViewMode = viewMode;
+    return this.monitorViewMode;
   }
 
   private toSnapshot(
