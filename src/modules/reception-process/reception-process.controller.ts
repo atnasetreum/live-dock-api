@@ -54,8 +54,20 @@ export class ReceptionProcessController {
   }
 
   @Get()
-  findAll(@Query('startDate') startDate?: string) {
-    return this.receptionProcessService.findAll({ startDate });
+  findAll(
+    @Query('search') search?: string,
+    @Query('typeOfMaterial') typeOfMaterial?: string,
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.receptionProcessService.findAll({
+      search,
+      typeOfMaterial,
+      status,
+      startDate,
+      endDate,
+    });
   }
 
   @Get('priority-alerts')

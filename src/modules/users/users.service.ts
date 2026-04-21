@@ -198,7 +198,7 @@ export class UsersService {
       },
       {
         name: 'Brenda Rodríguez',
-        password: '#bRodriguez01',
+        password: '#Brenda02',
         email: 'brodriguez@hadamexico.com',
         role: 'CALIDAD',
       },

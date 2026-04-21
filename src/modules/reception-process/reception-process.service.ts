@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Between, Repository } from 'typeorm';
+import { Brackets, Between, Repository } from 'typeorm';
 
 import { PushNotificationsService } from '../push-notifications/push-notifications.service';
 import { SessionsGateway } from '../sessions/sessions.gateway';
@@ -865,25 +865,83 @@ export class ReceptionProcessService {
     return this.notifySocketStateReceptionProcess(receptionProcessId);
   }
 
-  findAll({ startDate }: { startDate?: string }) {
-    return this.receptionProcessRepository.find({
-      where: {
-        isActive: true,
-        ...(startDate && {
-          createdAt: Between(
-            new Date(`${startDate}T00:00:00`),
-            new Date(`${startDate}T23:59:59`),
-          ),
+  findAll({
+    search,
+    typeOfMaterial,
+    status,
+    startDate,
+    endDate,
+  }: {
+    search?: string;
+    typeOfMaterial?: string;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    const query = this.receptionProcessRepository
+      .createQueryBuilder('receptionProcess')
+      .leftJoinAndSelect('receptionProcess.createdBy', 'createdBy')
+      .leftJoinAndSelect('receptionProcess.events', 'events')
+      .leftJoinAndSelect('events.createdBy', 'eventCreatedBy')
+      .leftJoinAndSelect('receptionProcess.metrics', 'metrics')
+      .leftJoinAndSelect('metrics.createdBy', 'metricCreatedBy')
+      .where('receptionProcess.isActive = :isActive', { isActive: true })
+      .orderBy('receptionProcess.createdAt', 'DESC')
+      .addOrderBy('events.id', 'ASC');
+
+    if (startDate) {
+      query.andWhere('receptionProcess.createdAt >= :startDate', {
+        startDate: new Date(`${startDate}T00:00:00`),
+      });
+    }
+
+    if (endDate) {
+      query.andWhere('receptionProcess.createdAt <= :endDate', {
+        endDate: new Date(`${endDate}T23:59:59`),
+      });
+    }
+
+    if (typeOfMaterial) {
+      query.andWhere('receptionProcess.typeOfMaterial = :typeOfMaterial', {
+        typeOfMaterial,
+      });
+    }
+
+    if (search) {
+      const searchLike = `%${search.trim()}%`;
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('LOWER(receptionProcess.providerName) LIKE LOWER(:search)', {
+            search: searchLike,
+          })
+            .orWhere(
+              'LOWER(receptionProcess.licensePlates) LIKE LOWER(:search)',
+              {
+                search: searchLike,
+              },
+            )
+            .orWhere('CAST(receptionProcess.id AS TEXT) LIKE :search', {
+              search: searchLike,
+            });
         }),
-      },
-      relations: this.relations,
-      order: {
-        createdAt: 'DESC',
-        events: {
-          id: 'ASC',
-        },
-      },
-    });
+      );
+    }
+
+    if (status) {
+      const normalizedStatus = status.trim().replace(/\s+/g, '_');
+      query.andWhere(
+        `(
+          SELECT pe.status
+          FROM process_events pe
+          WHERE pe."receptionProcessId" = "receptionProcess".id
+          ORDER BY pe.id DESC
+          LIMIT 1
+        ) = :status`,
+        { status: normalizedStatus },
+      );
+    }
+
+    return query.getMany();
   }
 
   async findOne(id: number) {
