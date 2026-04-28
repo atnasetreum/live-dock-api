@@ -13,6 +13,8 @@ import { AppKeyMiddleware, JwtMiddleware } from './middlewares';
 import { AuthModule, JwtService } from './auth';
 
 import { PushNotificationsModule } from './modules/push-notifications/push-notifications.module';
+import { McpAuthMiddleware } from './modules/mcp/mcp-auth.middleware';
+import { McpModule } from './modules/mcp/mcp.module';
 import { ReceptionProcessModule } from './modules/reception-process/reception-process.module';
 import { RequestLoggerMiddleware } from './middlewares/request-logger.middleware';
 import { SessionsModule } from './modules/sessions/sessions.module';
@@ -47,6 +49,7 @@ const ENV = process.env.NODE_ENV;
     UsersModule,
     SessionsModule,
     PushNotificationsModule,
+    McpModule,
     ReceptionProcessModule,
   ],
   controllers: [],
@@ -72,7 +75,14 @@ export class AppModule implements NestModule {
         { path: 'auth/login', method: RequestMethod.POST },
         { path: 'auth/login-restore-password', method: RequestMethod.POST },
         { path: 'auth/forgot-password', method: RequestMethod.POST },
+        { path: 'mcp/auth/login', method: RequestMethod.POST },
+        { path: 'mcp/get_delays_by_role', method: RequestMethod.GET },
       )
       .forRoutes('*');
+
+    consumer
+      .apply(McpAuthMiddleware)
+      .exclude({ path: 'mcp/auth/login', method: RequestMethod.POST })
+      .forRoutes('mcp');
   }
 }
