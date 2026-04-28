@@ -77,6 +77,16 @@ export class AppModule implements NestModule {
         { path: 'auth/forgot-password', method: RequestMethod.POST },
         { path: 'mcp/auth/login', method: RequestMethod.POST },
         { path: 'mcp/get_delays_by_role', method: RequestMethod.GET },
+        { path: 'mcp/get_bottleneck_snapshot', method: RequestMethod.GET },
+        {
+          path: 'mcp/get_role_workload_and_performance',
+          method: RequestMethod.GET,
+        },
+        { path: 'mcp/get_rejection_funnel', method: RequestMethod.GET },
+        {
+          path: 'mcp/get_user_notification_effectiveness',
+          method: RequestMethod.GET,
+        },
       )
       .forRoutes('*');
 
