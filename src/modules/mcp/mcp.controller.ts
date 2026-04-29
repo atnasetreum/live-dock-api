@@ -47,4 +47,14 @@ export class McpController {
   ): Promise<unknown> {
     return await this.mcpService.getUserNotificationEffectiveness(query);
   }
+
+  @Get('get_roles_catalog')
+  getRolesCatalog() {
+    return this.mcpService.getRolesCatalog();
+  }
+
+  @Get('get_event_types_catalog')
+  getEventTypesCatalog() {
+    return this.mcpService.getEventTypesCatalog();
+  }
 }

@@ -87,6 +87,8 @@ export class AppModule implements NestModule {
           path: 'mcp/get_user_notification_effectiveness',
           method: RequestMethod.GET,
         },
+        { path: 'mcp/get_roles_catalog', method: RequestMethod.GET },
+        { path: 'mcp/get_event_types_catalog', method: RequestMethod.GET },
       )
       .forRoutes('*');
 

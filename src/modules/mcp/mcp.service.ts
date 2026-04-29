@@ -91,6 +91,14 @@ type UserNotificationEffectivenessRow = {
   maxReactionTimeSec: string | null;
 };
 
+type DistinctRoleRow = {
+  role: string;
+};
+
+type DistinctEventTypeRow = {
+  eventType: string;
+};
+
 @Injectable()
 export class McpService {
   constructor(
@@ -830,6 +838,36 @@ export class McpService {
       leastEffectiveUser,
       data,
       generatedAt: new Date().toISOString(),
+    };
+  }
+
+  async getRolesCatalog() {
+    const rows = await this.userRepository
+      .createQueryBuilder('user')
+      .select('DISTINCT user.role', 'role')
+      .where('user.isActive = :isActive', { isActive: true })
+      .andWhere('user.role IS NOT NULL')
+      .orderBy('user.role', 'ASC')
+      .getRawMany<DistinctRoleRow>();
+
+    return {
+      roles: rows.map((row) => row.role),
+      total: rows.length,
+    };
+  }
+
+  async getEventTypesCatalog() {
+    const rows = await this.notificationMetricRepository
+      .createQueryBuilder('metric')
+      .select('DISTINCT metric.eventType', 'eventType')
+      .where('metric.isActive = :isActive', { isActive: true })
+      .andWhere('metric.eventType IS NOT NULL')
+      .orderBy('metric.eventType', 'ASC')
+      .getRawMany<DistinctEventTypeRow>();
+
+    return {
+      eventTypes: rows.map((row) => row.eventType),
+      total: rows.length,
     };
   }
 }
