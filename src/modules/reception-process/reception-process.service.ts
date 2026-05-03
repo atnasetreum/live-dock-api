@@ -24,6 +24,7 @@ import {
   ProcessState,
   ReceptionProcess,
   ReceptionProcessStatus,
+  ReceptionProcessTypeOfMaterial,
 } from './entities';
 import {
   CreateChangeOfStatusDto,
@@ -164,7 +165,7 @@ export class ReceptionProcessService {
     if (event !== ProcessEventOption.VIGILANCIA_REGISTRA_INGRESO) {
       const receptionProcess = await this.findOne(receptionProcessId);
 
-      const orderedSteps = {
+      const orderedSteps: Record<number, ProcessEventOption> = {
         1: ProcessEventOption.LOGISTICA_CONFIRMA_PENDIENTE_DE_INGRESO,
         2: ProcessEventOption.LOGISTICA_AUTORIZA_INGRESO,
         3: ProcessEventOption.CALIDAD_CONFIRMA_PENDIENTE_DE_ANALISIS,
@@ -181,6 +182,15 @@ export class ReceptionProcessService {
         14: ProcessEventOption.CALIDAD_LIBERA_EN_SAP,
       };
 
+      const { typeOfMaterial } = receptionProcess;
+      let stepsToValidate = orderedSteps;
+
+      if (typeOfMaterial === ReceptionProcessTypeOfMaterial.AGUA) {
+        stepsToValidate = Object.fromEntries(
+          Object.entries(orderedSteps).filter(([key]) => Number(key) <= 8),
+        ) as Record<number, ProcessEventOption>;
+      }
+
       if (event === ProcessEventOption.CALIDAD_APRUEBA_MATERIAL) {
         // Se elimina el paso 4, Reordenar las claves para que no haya saltos
         const reorderedSteps: Record<number, ProcessEventOption> = {};
@@ -188,14 +198,14 @@ export class ReceptionProcessService {
         for (const key in orderedSteps) {
           if (
             key !== '4' &&
-            orderedSteps[key] !== ProcessEventOption.CALIDAD_RECHAZA_MATERIAL
+            stepsToValidate[key] !== ProcessEventOption.CALIDAD_RECHAZA_MATERIAL
           ) {
-            reorderedSteps[index] = orderedSteps[key] as ProcessEventOption;
+            reorderedSteps[index] = stepsToValidate[key] as ProcessEventOption;
             index++;
           }
         }
 
-        Object.assign(orderedSteps, reorderedSteps);
+        stepsToValidate = reorderedSteps;
       }
 
       const lastStatus =
@@ -213,13 +223,13 @@ export class ReceptionProcessService {
         receptionProcess.events[receptionProcess.events.length - 1]?.event ||
         '';
 
-      if (event !== orderedSteps[Object.keys(orderedSteps).length]) {
-        const currentKeyIndex = Object.keys(orderedSteps).find(
-          (key) => orderedSteps[key] === lastEvent,
+      if (event !== stepsToValidate[Object.keys(stepsToValidate).length]) {
+        const currentKeyIndex = Object.keys(stepsToValidate).find(
+          (key) => stepsToValidate[key] === lastEvent,
         );
 
         if (currentKeyIndex !== undefined) {
-          const expectedEvent = orderedSteps[Number(currentKeyIndex) + 1] as
+          const expectedEvent = stepsToValidate[Number(currentKeyIndex) + 1] as
             | ProcessEventOption
             | undefined;
 
@@ -505,6 +515,52 @@ export class ReceptionProcessService {
         });
         break;
       case 'descargado':
+        if (
+          receptionProcess.typeOfMaterial ===
+          ReceptionProcessTypeOfMaterial.AGUA
+        ) {
+          // Regla de negocio AGUA: el flujo termina al finalizar descarga.
+          await this.createProcessEvent({
+            receptionProcessId,
+            createdBy,
+            event: ProcessEventOption.PRODUCCION_FINALIZA_DESCARGA,
+            status: ProcessState.FINALIZO_PROCESO,
+            role: ProcessEventRole.PRODUCCION,
+          });
+
+          await this.endReceptionProcess(
+            receptionProcess,
+            ReceptionProcessStatus.FINALIZADO,
+          );
+
+          await this.pushNotificationsService.notifyProcessFinished(
+            receptionProcess,
+            createdBy,
+          );
+
+          await this.priorityAlerts(
+            [
+              ProcessEventRole.VIGILANCIA,
+              ProcessEventRole.PRODUCCION,
+              ProcessEventRole.LOGISTICA,
+              ProcessEventRole.CALIDAD,
+            ],
+            {
+              receptionProcessId,
+              title: `Proceso finalizado #${receptionProcessId} ✅🎉`,
+              detail: this.pushNotificationsService.createDetailsNotification(
+                receptionProcess,
+                createdBy,
+              ),
+              severity: PriorityAlertSeverity.BAJA,
+              disableGroup: true,
+            },
+            createdBy,
+          );
+
+          break;
+        }
+
         // Registra nuevo evento
         await this.createProcessEvent({
           receptionProcessId,
